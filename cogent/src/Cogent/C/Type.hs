@@ -114,7 +114,7 @@ genTyDecl (Function t1 t2, n) tns =
   if n `elem` tns then ([],[])
                   else ([], [CDecl $ CTypeDecl (CIdent fty) [n]])
   where fty = if __cogent_funtyped_func_enum then untypedFuncEnum else unitT
-#ifdef BUILTIN_ARRAYS
+#ifdef REFINEMENT_TYPES
 genTyDecl (Array t, n) _ = ([CDecl $ CVarDecl t n True Nothing], [])
 genTyDecl (ArrayL layout, n) _ =
   let elemSize = dataLayoutSizeInWords layout
@@ -184,7 +184,7 @@ lookupTypeCId (TRecord _ fs (Boxed _ CLayout)) =
   getCompose (Compose . lookupStrlTypeCId =<<
     Record <$> (mapM (\(a,(b,_)) -> (a,) <$> (Compose . lookupType) b) fs))
 lookupTypeCId cogentType@(TRecord _ _ (Boxed _ _)) = __impossible "lookupTypeCId: record with non-record layout"
-#ifdef BUILTIN_ARRAYS
+#ifdef REFINEMENT_TYPES
 lookupTypeCId (TArray t n Unboxed _) = getCompose (Compose . lookupStrlTypeCId =<< Array <$> (Compose . lookupType) t)
 lookupTypeCId (TArray t n (Boxed _ l) _) = lookupStrlTypeCId (ArrayL l)
 #endif
@@ -295,7 +295,7 @@ typeCId t = use custTypeGen >>= \ctg ->
           return x
 
     typeCId' (TUnit) = return unitT
-#ifdef BUILTIN_ARRAYS
+#ifdef REFINEMENT_TYPES
     typeCId' (TArray t l Unboxed _) = getStrlTypeCId =<< Array <$> genType t
     typeCId' (TArray t l (Boxed _ al) _) =
       case al of
@@ -332,7 +332,7 @@ typeCId t = use custTypeGen >>= \ctg ->
     isUnstable (TProduct {}) = True
     isUnstable (TSum _) = True
     isUnstable (TRecord {}) = True
-#ifdef BUILTIN_ARRAYS
+#ifdef REFINEMENT_TYPES
     isUnstable (TArray {}) = True
 #endif
     isUnstable _ = False
@@ -354,7 +354,7 @@ genType t@(TString)                     = CPtr . CIdent <$> typeCId t
 genType t@(TCon _ _ s)   | s /= Unboxed = CPtr . CIdent <$> typeCId t
 genType t@(TRPar _ _)                   = CPtr . CIdent <$> typeCId t
 genType t@(TRParBang _ _)               = CPtr . CIdent <$> typeCId t
-#ifdef BUILTIN_ARRAYS
+#ifdef REFINEMENT_TYPES
 genType t@(TArray elt l s _)
   | (Boxed _ CLayout) <- s = CPtr <$> genType elt  -- If it's heap-allocated without layout specified
   -- we get rid of unused info here, e.g. array length, hole location
@@ -365,7 +365,7 @@ genType t                               = CIdent <$> typeCId t
 
 -- Helper function for remove unnecessary info for cogent types
 simplifyType :: CC.Type 'Zero VarName -> CC.Type 'Zero VarName
-#ifdef BUILTIN_ARRAYS
+#ifdef REFINEMENT_TYPES
 simplifyType (TArray elt _ (Boxed rw (Layout (ArrayLayout l))) _) =
     TArray elt (LILit 0 U32) (Boxed rw (Layout (ArrayLayout l))) Nothing
 #endif
@@ -385,7 +385,7 @@ genTypeA t = genType t
 
 -- It will generate a pointer type for an array, instead of the static-sized array type
 genTypeP :: CC.Type 'Zero VarName -> Gen v CType
-#ifdef BUILTIN_ARRAYS
+#ifdef REFINEMENT_TYPES
 genTypeP (TArray telm l Unboxed _) = CPtr <$> genTypeP telm  -- FIXME: what about boxed? / zilinc
 #endif
 genTypeP t = genType t
@@ -396,7 +396,7 @@ lookupType :: CC.Type 'Zero VarName -> Gen v (Maybe CType)
 lookupType t@(TRecord _ _ s)  | s /= Unboxed = getCompose (CPtr . CIdent <$> Compose (lookupTypeCId t))
 lookupType t@(TString)                       = getCompose (CPtr . CIdent <$> Compose (lookupTypeCId t))
 lookupType t@(TCon _ _ s)     | s /= Unboxed = getCompose (CPtr . CIdent <$> Compose (lookupTypeCId t))
-#ifdef BUILTIN_ARRAYS
+#ifdef REFINEMENT_TYPES
 lookupType t@(TArray _ _ s _) | s /= Unboxed = getCompose (CPtr . CIdent <$> Compose (lookupTypeCId t))
                               | otherwise    = getCompose (CPtr . CIdent <$> Compose (lookupTypeCId t))
 #endif
