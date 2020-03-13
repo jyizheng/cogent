@@ -160,6 +160,7 @@ library
               , Cogent.Isabelle.ShallowTable
               , Cogent.Isabelle.TypeProofs
               , Cogent.Isabelle.IsabelleName
+              , Cogent.Isabelle.MLGen
               , Cogent.Mono
               , Cogent.Normal
               , Cogent.Parser
