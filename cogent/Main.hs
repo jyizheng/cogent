@@ -57,6 +57,7 @@ import Cogent.Isabelle.Shallow         as IS (shallowConsts, shallow, shallowTup
 import Cogent.Isabelle.ShallowTable    as ST (st, printTable)  -- for debugging only
 import Cogent.Isabelle.TypeProofs      as TP (deepTypeProof)
 import Cogent.Isabelle.GraphGen        as GG
+import Cogent.Isabelle.MLGen           as ML
 import Cogent.Mono                     as MN (mono, printAFM)
 import Cogent.Normal                   as NF (normal, verifyNormal)
 import Cogent.Parser                   as PA (parseWithIncludes, parseCustTyGen)
@@ -165,6 +166,7 @@ data Command = AstC
              | StdGumDir
              | Help Verbosity
              | Version
+             | DeepML
              -- More
              deriving (Eq, Show)
 
@@ -253,6 +255,7 @@ setActions c@(ShallowConsts stg) = setActions (Compile stg) ++ [c]
 setActions c@ShallowConstsTuples = setActions (Compile STGDesugar) ++ [c]
 setActions c@(TableShallow ) = setActions (Compile STGDesugar) ++ [c]
 setActions c@(TypeProof stg) = setActions (Compile stg)        ++ [c]
+setActions c@(DeepML)        = setActions (Compile STGMono)    ++ [c]
 setActions c@ShallowTuplesProof = setActions (ShallowTuples) ++
                                   setActions (ShallowConstsTuples) ++
                                   setActions (Shallow STGDesugar) ++
@@ -415,6 +418,8 @@ options = [
   -- type proof
   , Option []         ["type-proof-normal"] 1 (NoArg (TypeProof STGNormal)) "generate Isabelle proof of type correctness of normalised AST"
   , Option []         ["type-proof"]        1 (NoArg (TypeProof STGMono  )) "generate Isabelle proof of type correctness of normal-mono AST"
+  -- TESTING: ML generation
+  , Option []         ["deep-ml"]           2 (NoArg DeepML)                    "generate an ML deep embedding"
   -- top-level theory
   , Option []         ["all-refine"]      1 (NoArg AllRefine)          "[COLLECTIVE] generate shallow-to-C refinement proof"
   -- misc.
@@ -779,6 +784,11 @@ parseArgs args = case getOpt' Permute options args of
                 tpthy  = mkProofName source (Just __cogent_suffix_of_type_proof)
             writeFileMsg tpfile
             output tpfile $ flip LJ.hPutDoc $ deepTypeProof id __cogent_ftp_with_decls __cogent_ftp_with_bodies tpthy monoed' log
+          when (DeepML `elem` cmds) $ do
+            let thynm = mkProofName source (Just __cogent_suffix_of_deep_ml)
+                fname = Just $ __cogent_dist_dir `combine` thynm <.> __cogent_ext_of_thy
+            writeFileMsg fname
+            output fname $ flip LJ.hPutDoc $ ML.deepML thynm monoed'
           when (AllRefine `elem` cmds) $ do
             let arfile = mkThyFileName source __cogent_suffix_of_all_refine
             writeFileMsg arfile

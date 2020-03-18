@@ -10,7 +10,7 @@
 -- @TAG(DATA61_GPL)
 --
 
-{-# OPTIONS_GHC -Werror -Wall #-}
+-- {-# OPTIONS_GHC -Werror -Wall #-}
 
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -18,33 +18,50 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Cogent.Isabelle.MLGen where
+module Cogent.Isabelle.MLGen
+  ( deepML )
+where
 
 {-
   This file generates Poly/ML deep embeddings of Cogent terms and types.
 -}
 
--- import Cogent.Common.Repr
 import Cogent.Common.Types
 import Cogent.Common.Syntax
--- import Cogent.Compiler
 import Cogent.Core
--- import Cogent.Isabelle.Deep
--- import Cogent.PrettyPrint
--- import Cogent.Util
--- import Data.LeafTree
--- import Data.Nat (Nat(Zero, Suc), SNat(SZero, SSuc))
--- import qualified Data.Nat as Nat
--- import Data.Vec hiding (splitAt, length, zipWith, zip, unzip)
-import qualified Data.Vec as Vec
 
--- import Lens.Micro.TH (makeLenses)
--- import Lens.Micro.Mtl ((%=), (.=), use)
--- import Control.Monad.State.Strict
--- import Data.List
--- import Data.Map (Map)
--- import Data.Maybe (catMaybes)
--- import qualified Data.Map as M
+import qualified Data.Vec as Vec
+import Control.Monad ((<=<))
+import Data.Maybe (mapMaybe)
+
+import qualified Text.PrettyPrint.ANSI.Leijen as L
+import Text.PrettyPrint.ANSI.Leijen ((<+>))
+
+import Data.Bifunctor
+
+import Debug.Trace
+
+deepML :: String -> [Definition TypedExpr a] -> L.Doc
+deepML fname defns =
+  let header = L.text ("theory "++fname) <> L.line <>
+               L.text "  import CogentTactics.Syntax" <> L.line <>
+               L.text "begin" <> L.line <>
+               L.line <>
+               L.text "ML \\<open>"
+      footer = L.text "\\<close>" <> L.line <>
+               L.text "end"
+      body = L.vsep $ mapMaybe ((pure . docMLTerm) <=< deepDefn) defns
+   in header <> L.line <> body <> L.line <> footer
+
+docMLTerm :: MLTerm -> L.Doc
+docMLTerm (MLApp f a)     = docMLTerm f <+> docMLTerm a
+docMLTerm (MLId s)        = L.text s
+docMLTerm (MLList as)     = L.list $ map docMLTerm as
+docMLTerm (MLPair a b)    = L.tupled $ [docMLTerm a, docMLTerm b]
+docMLTerm (MLString s)    = L.dquotes $ L.text s -- TODO,FIXME: probably need to escape
+docMLTerm (MLRecord fs)   = L.encloseSep (L.lbrace <> L.space) (L.space <> L.rbrace) (L.comma <> L.space) $
+                              (\(n,tm) -> L.text n <> L.colon <+> docMLTerm tm) <$> fs
+docMLTerm (MLValBind v a) = L.text "val" <+> L.text v <+> L.equals <+> docMLTerm a <> L.semi
 
 -- An ad hoc datatype for generating Poly/ML
 data MLTerm
@@ -54,6 +71,8 @@ data MLTerm
   | MLPair MLTerm MLTerm
   | MLString String
   | MLRecord [(String,MLTerm)]
+  | MLValBind String MLTerm
+  deriving (Show,Eq)
 
 mkApp :: MLTerm -> MLTerm -> MLTerm
 mkApp = MLApp
@@ -91,6 +110,13 @@ mkTriple a b c = MLPair a (MLPair b c)
 mkBool :: Bool -> MLTerm
 mkBool True = mkId "True"
 mkBool False = mkId "False"
+
+
+
+deepDefn :: Definition TypedExpr a -> Maybe MLTerm
+deepDefn (FunDef attr fn ts ti to e) = Just $ MLValBind fn $ deepExpr e
+deepDefn (AbsDecl attr fn ts ti to)  = Nothing
+deepDefn (TypeDef tn ts mtydef)      = Nothing
 
 
 deepPrimType :: PrimInt -> MLTerm

@@ -732,6 +732,9 @@ __cogent_root_dir_ref = unsafePerformIO $ newIORef (cogentRelDir "." __cogent_di
 
 -- TODO: zilinc
 
+__cogent_suffix_of_deep_ml :: String
+__cogent_suffix_of_deep_ml = "_DeepML"
+
 __cogent_suffix_of_all_refine :: String
 __cogent_suffix_of_all_refine = "_AllRefine"
 
