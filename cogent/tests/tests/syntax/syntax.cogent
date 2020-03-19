@@ -1,0 +1,58 @@
+
+-- struct
+test_struct : () -> #{ a: U8, b: U8 }
+test_struct _ = #{ a = 0, b = 1 }
+
+-- take, put, prim
+test_takeput : { a: U8 } -> { a: U8 }
+test_takeput r = let r2{ a = x } = r
+                  in r2{ a = x+x }
+
+-- member
+test_member : #{ a : U8 } -> U8
+test_member r = r.a
+
+-- app
+test_app : ( (U32,U32) -> U32, U32 -> U32, U32 ) -> U32
+test_app (g,h,a) = g (a, h a)
+
+-- variant constructor
+test_vconstr : U8 -> < A U8 | B U8 >
+test_vconstr n = A n
+
+-- variant case, promote
+test_vcase : < A U8 | B U16 > -> < A U8 | B U16 > take B
+test_vcase | B n -> A 0
+           | v1  -> v1
+
+-- esac case
+test_vesac : < A U8 | B U16 > take B -> U8
+test_vesac | A n -> n
+
+-- if-then-else
+test_ite : (Bool, U16, U32) -> < A U16 | B U32 >
+test_ite (b,m,n) = if b then A m else B n
+
+-- test let!
+test_letb : ( ({ x:() }! -> U32), { x : { x:() } } ) -> ({ x : { x:() } }, U32)
+test_letb (f,r) = let n = f (r.x) !r
+                   in (r, n)
+
+type Lin
+
+-- test taken fields
+test_rtaken : { x : Lin, y : Lin } take y -> { x : Lin, y : Lin } take y
+test_rtaken r = r
+
+-- test RO records
+test_recordRo : { x : Lin, y : Lin }! -> { x : Lin, y : Lin }!
+test_recordRo r = r
+
+
+-- test taken cases
+test_vtaken0 : < A Lin | B Lin > take A -> < A Lin | B Lin > take A
+test_vtaken0 r = r
+
+-- test variant subtyping , promote
+test_vtaken1 : < A Lin | B Lin > take A -> < A Lin | B Lin >
+test_vtaken1 r = r
