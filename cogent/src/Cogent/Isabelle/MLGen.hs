@@ -192,7 +192,7 @@ deepExpr (TE _ (Fun n ts _)     ) = mkApp (mkId "Fun") $ mkRecord [ ("name", mkI
                                                                   , ("tyargs", mkList (map deepType ts))
                                                                   ]
 deepExpr (TE _ (Op op es)       ) = mkApp (mkId "Prim") $ mkRecord [ ("oper", deepOp op)
-                                                                   , ("exprs", mkList (map deepExpr es))
+                                                                   , ("es", mkList (map deepExpr es))
                                                                    ]
 deepExpr (TE _ (App e1 e2)      ) = mkApp (mkId "App") $ mkPair (deepExpr e1) (deepExpr e2)
 deepExpr (TE _ (Con n e (TSum ts))) =
