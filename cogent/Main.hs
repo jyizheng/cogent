@@ -11,115 +11,133 @@
 --
 
 {- LANGUAGE BangPatterns -}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE CPP                        #-}
+{-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE MultiWayIf #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE MultiWayIf                 #-}
+{-# LANGUAGE NamedFieldPuns             #-}
 {- LANGUAGE QuasiQuotes -}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 {- LANGUAGE TemplateHaskell -}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TupleSections              #-}
 {-# OPTIONS_GHC -Wwarn #-}
 
 module Main where
 
-import Cogent.C.Compile                as CG (printCTable, printATM)
-import Cogent.CodeGen                  as CG (cgen)
-import Cogent.Common.Syntax            as SY (CoreFunName(..))
-import Cogent.Compiler
-import Cogent.Core                     as CC (isConFun, getDefinitionId, untypeD)  -- FIXME: zilinc
-import Cogent.Desugar                  as DS (desugar)
+import           Cogent.C.Compile                 as CG (printATM, printCTable)
+import           Cogent.CodeGen                   as CG (cgen)
+import           Cogent.Common.Syntax             as SY (CoreFunName (..))
+import           Cogent.Compiler
+import           Cogent.Core                      as CC (getDefinitionId,
+                                                         isConFun, untypeD)
+import           Cogent.Desugar                   as DS (desugar)
 #ifdef WITH_DOCGENT
-import Cogent.DocGent                  as DG (docGent)
+import           Cogent.DocGent                   as DG (docGent)
 #endif
-import Cogent.GetOpt
-import Cogent.Glue                     as GL (defaultExts, defaultTypnames,
-                                              GlState, glue, GlueMode(..), mkGlState,
-                                              parseFile, readEntryFuncs)
+import           Cogent.GetOpt
+import           Cogent.Glue                      as GL (GlState, GlueMode (..),
+                                                         defaultExts,
+                                                         defaultTypnames, glue,
+                                                         mkGlState, parseFile,
+                                                         readEntryFuncs)
 #ifdef WITH_HASKELL
-import Cogent.Haskell.Shallow          as HS
+import           Cogent.Haskell.Shallow           as HS
 #endif
-import Cogent.Inference                as IN (tc, tc_, tcConsts, retype)
-import Cogent.Interpreter              as Repl (replWithState)
-import Cogent.Isabelle.ACInstall       as AC (acInstallDefault)
-import Cogent.Isabelle.AllRefine       as AR (allRefine)
-import Cogent.Isabelle.CorresProof     as CP (corresProof)
-import Cogent.Isabelle.CorresSetup     as CS (corresSetup)
-import Cogent.Isabelle.Deep            as DP (deep)
-import Cogent.Isabelle.MonoProof       as MP  -- FIXME: zilinc
-import Cogent.Isabelle.NormalProof     as NP (normalProof)
-import Cogent.Isabelle.Root            as RT (root)
-import Cogent.Isabelle.Shallow         as IS (shallowConsts, shallow, shallowTuplesProof)
-import Cogent.Isabelle.ShallowTable    as ST (st, printTable)  -- for debugging only
-import Cogent.Isabelle.TypeProofs      as TP (deepTypeProof)
-import Cogent.Isabelle.GraphGen        as GG
-import Cogent.Mono                     as MN (mono, printAFM)
-import Cogent.Normal                   as NF (normal, verifyNormal)
-import Cogent.Parser                   as PA (parseWithIncludes, parseCustTyGen)
-import Cogent.Preprocess               as PR
-import Cogent.PrettyPrint              as PP (prettyPrint, prettyRE, prettyTWE)
-import Cogent.Reorganizer              as RO (reorganize)
-import Cogent.Simplify                 as SM
-import Cogent.SuParser                 as SU (parse)
-import Cogent.Surface                  as SR (stripAllLoc)
-import Cogent.TypeCheck                as TC (tc)
-import Cogent.TypeCheck.Base           as TC
-import Cogent.Util                     as UT
+
+import           Cogent.LLVM.Compile              as LLVM
+
+import           Cogent.Inference                 as IN (retype, tc, tcConsts,
+                                                         tc_)
+import           Cogent.Interpreter               as Repl (replWithState)
+import           Cogent.Isabelle.ACInstall        as AC (acInstallDefault)
+import           Cogent.Isabelle.AllRefine        as AR (allRefine)
+import           Cogent.Isabelle.CorresProof      as CP (corresProof)
+import           Cogent.Isabelle.CorresSetup      as CS (corresSetup)
+import           Cogent.Isabelle.Deep             as DP (deep)
+import           Cogent.Isabelle.GraphGen         as GG
+import           Cogent.Isabelle.MonoProof        as MP
+import           Cogent.Isabelle.NormalProof      as NP (normalProof)
+import           Cogent.Isabelle.Root             as RT (root)
+import           Cogent.Isabelle.Shallow          as IS (shallow, shallowConsts,
+                                                         shallowTuplesProof)
+import           Cogent.Isabelle.ShallowTable     as ST (printTable, st)
+import           Cogent.Isabelle.TypeProofs       as TP (deepTypeProof)
+import           Cogent.Mono                      as MN (mono, printAFM)
+import           Cogent.Normal                    as NF (normal, verifyNormal)
+import           Cogent.Parser                    as PA (parseCustTyGen,
+                                                         parseWithIncludes)
+import           Cogent.Preprocess                as PR
+import           Cogent.PrettyPrint               as PP (prettyPrint, prettyRE,
+                                                         prettyTWE)
+import           Cogent.Reorganizer               as RO (reorganize)
+import           Cogent.Simplify                  as SM
+import           Cogent.SuParser                  as SU (parse)
+import           Cogent.Surface                   as SR (stripAllLoc)
+import           Cogent.TypeCheck                 as TC (tc)
+import           Cogent.TypeCheck.Base            as TC
+import           Cogent.Util                      as UT
 
 -- import BuildInfo_cogent (githash, buildtime)
 #if __GLASGOW_HASKELL__ < 709
-import Control.Applicative (liftA, (<$>))
+import           Control.Applicative              (liftA, (<$>))
 #else
-import Control.Applicative (liftA)
+import           Control.Applicative              (liftA)
 #endif
-import Control.Monad (forM, forM_, unless, when, (<=<))
-import Control.Monad.Trans.Except (runExceptT)
+import           Control.Monad                    (forM, forM_, unless, when,
+                                                   (<=<))
+import           Control.Monad.Trans.Except       (runExceptT)
 -- import Control.Monad.Cont
 -- import Control.Monad.Except (runExceptT)
 -- import Control.Monad.Trans.Either (eitherT, runEitherT)
-import Data.Binary (encodeFile, decodeFileOrFail)
-import Data.Char (isSpace)
-import Data.Either (isLeft, fromLeft)
-import Data.Foldable (fold, foldrM)
-import Data.List as L (find, intersect, isPrefixOf, nub, partition)
-import Data.Map (empty, fromList)
-import Data.Maybe (fromJust, isJust)
-import Data.Monoid (getLast)
-import Data.Time
-import qualified Data.Traversable as T (forM)
+import           Data.Binary                      (decodeFileOrFail, encodeFile)
+import           Data.Char                        (isSpace)
+import           Data.Either                      (fromLeft, isLeft)
+import           Data.Foldable                    (fold, foldrM)
+import           Data.List                        as L (find, intersect,
+                                                        isPrefixOf, nub,
+                                                        partition)
+import           Data.Map                         (empty, fromList)
+import           Data.Maybe                       (fromJust, isJust)
+import           Data.Monoid                      (getLast)
+import           Data.Time
+import qualified Data.Traversable                 as T (forM)
 -- import Isabelle.InnerAST (subSymStr)
 -- import Language.Haskell.TH.Ppr ()
-import Prelude hiding (mapM_)
-import System.AtomicWrite.Writer.String (atomicWithFile)
+import           Prelude                          hiding (mapM_)
+import           System.AtomicWrite.Writer.String (atomicWithFile)
 -- import System.Console.GetOpt
-import System.Directory
-import System.Environment
-import System.Exit hiding (exitSuccess, exitFailure)
-import System.FilePath hiding ((</>))
-import System.IO
-import System.Process (readProcessWithExitCode)
-import Text.PrettyPrint.ANSI.Leijen as LJ (displayIO, Doc, hPutDoc, plain)
+import           System.Directory
+import           System.Environment
+import           System.Exit                      hiding (exitFailure,
+                                                   exitSuccess)
+import           System.FilePath                  hiding ((</>))
+import           System.IO
+import           System.Process                   (readProcessWithExitCode)
+import           Text.PrettyPrint.ANSI.Leijen     as LJ (Doc, displayIO,
+                                                         hPutDoc, plain)
 #if MIN_VERSION_mainland_pretty(0,6,0)
-import Text.PrettyPrint.Mainland as M (hPutDoc, line, string, (</>))
-import Text.PrettyPrint.Mainland.Class as M (ppr)
+import           Text.PrettyPrint.Mainland        as M (hPutDoc, line, string,
+                                                        (</>))
+import           Text.PrettyPrint.Mainland.Class  as M (ppr)
 #else
-import Text.PrettyPrint.Mainland as M (ppr, hPutDoc, line, string, (</>))
+import           Text.PrettyPrint.Mainland        as M (hPutDoc, line, ppr,
+                                                        string, (</>))
 #endif
-import Text.Show.Pretty (ppShow)
-import Lens.Micro((^.))
+import           Lens.Micro                       ((^.))
+import           Text.Show.Pretty                 (ppShow)
 -- import Debug.Trace
 
 -- Major modes of operation.
 data Mode = ModeAstC
-          | ModeStackUsage
-          | ModeCompiler
-          | ModeInterpreter
-          | ModeAbout
-          deriving (Eq, Show)
+    | ModeStackUsage
+    | ModeCompiler
+    | ModeInterpreter
+    | ModeLLVM
+    | ModeAbout
+    deriving (Eq, Show)
 
 type Verbosity = Int
 
@@ -127,81 +145,86 @@ type Verbosity = Int
 -- Multiple commands may be given, but they must all have the same Mode (wrt. getMode).
 -- `!' means collective command
 data Command = AstC
-             | StackUsage (Maybe FilePath)
-             | Compile Stage
-             | Interpret
-             | CodeGen
-             | ACInstall
-             | CorresSetup
-             | CorresProof
-             | Documentation
-             | Ast       Stage
-             | Pretty    Stage
-             | HsShallow
-             | HsShallowTuples
-             | HsFFIGen
-             | Deep      Stage
-             | Shallow   Stage
-             | ShallowTuples -- STGDesugar
-             | SCorres   Stage
-             | ShallowConsts Stage
-             | ShallowConstsTuples -- STGDesugar
-             | TableCType
-             | TableAbsFuncMono
-             | TableAbsTypeMono
-             | TableShallow
-             | ShallowTuplesProof
-             | NormalProof
-             | MonoProof
-             | GraphGen
-             | TypeProof Stage
-             | AllRefine
-             | Root
-             | BuildInfo
-             | All  -- ! (excl. Hs stuff)
-             | CRefinement  -- !
-             | FunctionalCorrectness  -- !
-             | QuickCheck  -- !
-             | StdGumDir
-             | Help Verbosity
-             | Version
-             -- More
-             deriving (Eq, Show)
+    | StackUsage (Maybe FilePath)
+    | Compile Stage
+    | Interpret
+    | CodeGen
+    | LLVMGen
+    | ACInstall
+    | CorresSetup
+    | CorresProof
+    | Documentation
+    | Ast Stage
+    | Pretty Stage
+    | HsShallow
+    | HsShallowTuples
+    | HsFFIGen
+    | Deep Stage
+    | Shallow Stage
+    | ShallowTuples
+    | SCorres Stage
+    | ShallowConsts Stage
+    | ShallowConstsTuples
+    | TableCType
+    | TableAbsFuncMono
+    | TableAbsTypeMono
+    | TableShallow
+    | ShallowTuplesProof
+    | NormalProof
+    | MonoProof
+    | GraphGen
+    | TypeProof Stage
+    | AllRefine
+    | Root
+    | BuildInfo
+    | All
+    | CRefinement
+    | FunctionalCorrectness
+    | QuickCheck
+    | StdGumDir
+    | Help Verbosity
+    | Version
+    deriving (Eq, Show)
 
 
 isAstC :: Command -> Bool
 isAstC AstC = True
-isAstC _ = False
+isAstC _    = False
 
 isStackUsage :: Command -> Bool
 isStackUsage (StackUsage _) = True
-isStackUsage _ = False
+isStackUsage _              = False
+
+ 
+isLLVMGen :: Command -> Bool
+isLLVMGen LLVMGen = True
+isLLVMGen _    = False
 
 isDeep :: Stage -> Command -> Bool
 isDeep s (Deep s') = s == s'
-isDeep _ _ = False
+isDeep _ _         = False
 
 isShallow :: Stage -> Command -> Bool
-isShallow s (Shallow s') = s == s'
+isShallow s (Shallow s')           = s == s'
 isShallow STGDesugar ShallowTuples = True
-isShallow _ _ = False
+isShallow _ _                      = False
 
 isSCorres :: Stage -> Command -> Bool
 isSCorres s (SCorres s') = s == s'
-isSCorres _ _ = False
+isSCorres _ _            = False
 
 isShallowConsts :: Stage -> Command -> Bool
-isShallowConsts s (ShallowConsts s') = s == s'
+isShallowConsts s (ShallowConsts s')           = s == s'
 isShallowConsts STGDesugar ShallowConstsTuples = True
-isShallowConsts _ _ = False
+isShallowConsts _ _                            = False
 
 isHelp :: Command -> Bool
 isHelp (Help _) = True
-isHelp _ = False
+isHelp _        = False
 
 addCommands :: [Command] -> Either String (Mode, [Command])
-addCommands [] = Left "no command is given"
-addCommands [c] = Right (getMode c, setActions c)
+addCommands []     = Left "no command is given"
+addCommands [c]    = Right (getMode c, setActions c)
 addCommands (c:cs) = foldrM addCommand (getMode c, setActions c) cs
 
 addCommand :: Command -> (Mode, [Command]) -> Either String (Mode, [Command])
@@ -212,12 +235,13 @@ addCommand c = \(m',cs) -> if getMode c == m'
                             else Left $ "command conflicts with others: " ++ show c
 
 getMode :: Command -> Mode
-getMode AstC = ModeAstC
+getMode AstC           = ModeAstC
 getMode (StackUsage _) = ModeStackUsage
-getMode StdGumDir = ModeAbout
-getMode (Help _) = ModeAbout
-getMode Version = ModeAbout
-getMode _ = ModeCompiler
+getMode StdGumDir      = ModeAbout
+getMode (Help _)       = ModeAbout
+getMode Version        = ModeAbout
+getMode LLVMGen        = ModeLLVM
+getMode _              = ModeCompiler
 
 ccStandalone :: Command -> [Command] -> Maybe Command
 ccStandalone c cs | null cs = Nothing
@@ -233,6 +257,8 @@ setActions :: Command -> [Command]
 setActions c@AstC = [c]
 -- Stack Usage
 setActions c@(StackUsage x) = [c]
+-- LLVM
+setActions c@LLVMGen = setActions (Compile STGMono) ++ [c]
 -- Cogent
 setActions c@(Compile STGParse) = [c]
 setActions c@(CodeGen      ) = setActions (Compile STGCodeGen) ++ [c]
@@ -358,6 +384,8 @@ options = [
   , Option []         ["ast-mono"]        2 (NoArg $ Ast STGMono)           (astMsg STGMono)
   -- interpreter
   , Option ['i']      ["repl"]            1 (NoArg $ Interpret)             "run Cogent REPL"
+  -- llvm
+  , Option []         ["llvm"]            0 (NoArg LLVMGen)                 "use the experimental LLVM backend"
   -- documentation
 #ifdef WITH_DOCGENT
   , Option []         ["docgent"]         2 (NoArg $ Documentation)         "generate HTML documentation"
@@ -552,7 +580,7 @@ flags =
 parseArgs :: [String] -> IO ()
 parseArgs args = case getOpt' Permute options args of
     (cmds,xs,us,[]) -> case addCommands cmds of
-                         Left  err -> exitErr (err ++ "\n")
+                         Left  err       -> exitErr (err ++ "\n")
                          Right (_,cmds') -> withCommands (cmds',xs,us,args)  -- XXX | noCommandError (cmds',xs,us,args)
     (_,_,us,errs)   -> exitErr (concat errs)
   where
@@ -598,7 +626,7 @@ parseArgs args = case getOpt' Permute options args of
              utc <- getCurrentTime
              zone <- getCurrentTimeZone
              let zoned = utcToZonedTime zone utc
-                 buildinfo = 
+                 buildinfo =
                    "-----------------------------------------------------------------------------\n" ++
                    "This file is generated by " ++ versionInfo ++ "\n" ++
                    "with command ./cogent " ++ unwords args ++ "\n" ++
@@ -768,6 +796,8 @@ parseArgs args = case getOpt' Permute options args of
                                                                     SCorres stg `elem` cmds,
                                                                     ShallowConsts stg `elem` cmds,
                                                                     False, False, False, False, False)
+          -- LLVM Entrance
+          when (LLVMGen `elem` cmds) $ llvmg cmds monoed' ctygen' insts source tced tcst typedefs fts buildinfo log
           when (Compile (succ stg) `elem` cmds) $ cg cmds monoed' ctygen' insts source tced tcst typedefs fts buildinfo log
           c_refinement source monoed' insts log (ACInstall `elem` cmds, CorresSetup `elem` cmds, CorresProof `elem` cmds)
           when (MonoProof `elem` cmds) $ do
@@ -789,6 +819,13 @@ parseArgs args = case getOpt' Permute options args of
             output rtfile $ flip hPutStrLn (unlines $ root source log)
           when (GraphGen `elem` cmds) $ putProgressLn ("Generating graph...") >> graphGen monoed' log
           exitSuccessWithBuildInfo cmds buildinfo
+
+    llvmg cmds monoed ctygen insts source tced tcst typedefs fts buildinfo log = do
+      putProgressLn "Now using the LLVM backend"
+      pretty stdout monoed
+      LLVM.to_llvm monoed source
+
+
 
     cg cmds monoed ctygen insts source tced tcst typedefs fts buildinfo log = do
       let hName = mkOutputName source Nothing <.> __cogent_ext_of_h

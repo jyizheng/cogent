@@ -74,7 +74,7 @@ nameToFileName name ext =
 mkFileName' :: (String -> String) -> FilePath -> Maybe String -> String -> Maybe FilePath
 mkFileName' mod src mbsuf ext =
   if __cogent_fdump_to_stdout
-    then Nothing 
+    then Nothing
     else Just $ __cogent_dist_dir `combine` mkOutputName' mod src mbsuf <.> ext
 
 mkFileName :: FilePath -> Maybe String -> String -> Maybe FilePath

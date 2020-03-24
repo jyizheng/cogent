@@ -11,3 +11,5 @@ extra-package-dbs: []
 extra-deps:
   - haskell-exp-parser-0.1.1
   - pretty-show-ansi-wl-1.9.2.1
+  - llvm-hs-9.0.1
+  - llvm-hs-pure-9.0.0
