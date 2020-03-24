@@ -198,7 +198,6 @@ library
               , Data.PropEq
               , Data.Vec
               , Cogent.LLVM.Compile
-              , Cogent.LLVM.Types
               -- Generated
               , Paths_cogent
               , Version_cogent
