@@ -322,7 +322,7 @@ expr_to_llvm (TE _ (Take (a, b) recd fld body)) =
     modify (\s -> s { indexing = [fldv, recv] ++ vars })
     res <- expr_to_llvm body
     case res of
-      Left val -> ((>>=) (terminator (Do (Ret (Just val) [])) ) (\a -> return (Right a)))
+      Left val -> ((terminator (Do (Ret (Just val) [])) ) >>= (\a -> return (Right a)))
       Right trm -> return (Right trm)
 
 
