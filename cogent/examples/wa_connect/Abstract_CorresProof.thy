@@ -43,7 +43,7 @@ where
   "state_rel' = {(\<sigma>, h). heap_rel' \<sigma> h}"
 
 subsection "Update semantics abstraction"
-term ptr_val
+
 definition \<xi>_0' :: "(char list, atyp, 32 word) uabsfuns" 
   where
   "\<xi>_0' x y z = 
@@ -61,13 +61,6 @@ definition \<xi>_0' :: "(char list, atyp, 32 word) uabsfuns"
                             UPtr p r = z2
                     | _ \<Rightarrow> False)
            else False))" 
-
-
-(* wordarray_put2_u32 add it later + explicit representation of r *)
-(* Representation for a pointer to a WordArray for U32 *)
-value "type_repr (TCon ''WordArray'' [TPrim (Num U32)] (Boxed Writable (PtrBits 0 0)))"
-value " \<xi>_0' matches-u \<Xi>"
-thm type_repr_uval_repr
 
 section "Proof"
 
@@ -146,13 +139,16 @@ lemma  "\<And>i \<gamma> v' \<Gamma>' \<sigma> st.
      apply (metis Ptr_ptr_val mult.commute)
     apply (drule_tac p = x and uv = uv in  all_heap_rel_ptrD; clarsimp)
    apply (rule conjI; clarsimp)
-    apply (drule_tac p = "w_p st (arr_C v') +\<^sub>p uint (idx_C v')" and uv = uv in  all_heap_rel_ptrD;
+    apply (drule_tac p = "w_p st (arr_C v') +\<^sub>p uint (idx_C v')" and uv = uv in all_heap_rel_ptrD;
            clarsimp simp: ptr_add_def mult.commute)
    apply (drule_tac p = x and uv = uv in  all_heap_rel_ptrD; simp)
 
 \<comment> \<open> Prove the value relation for the return value \<close>
   apply (rule_tac x = "repr" in exI; simp)
   done
+
+
+
 (*
 
 lemma "\<xi>_0' matches-u \<Xi>"
