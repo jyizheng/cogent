@@ -16,7 +16,7 @@ begin
 type_synonym funtyp = "char list"
 
 (* Placeholder. We will need to add proper abstract value representations later on. *)
-datatype atyp = WordArrayU32 "32 word list" | WAU32 "32 word" "32 word" | TOther
+datatype atyp =  WAU32 "32 word" "32 word" | TOther
 type_synonym abstyp = atyp
 
 (*type_synonym abstyp = unit*)
