@@ -21,54 +21,51 @@ end
 sublocale WordArray \<subseteq>
   update_sem_init abs_typing' abs_repr'
   apply (unfold abs_repr'_def[abs_def] abs_typing'_def[abs_def])
-  apply unfold_locales
-         apply (clarsimp split: atyp.splits)
-         apply (case_tac s; clarsimp)
-         apply (case_tac x11a; simp)
-        apply (clarsimp split: atyp.splits)
-        apply (case_tac s; clarsimp)
-        apply (case_tac x11a; clarsimp)
-       apply (clarsimp split: atyp.splits)
-       apply (case_tac s; clarsimp)
-       apply (case_tac x11a; clarsimp)
-      apply (clarsimp split: atyp.splits)
-      apply (case_tac s; clarsimp)
-      apply (case_tac x11a; clarsimp)
-      apply (clarsimp split: atyp.splits)
-      apply (case_tac s; clarsimp)
-     apply (case_tac x11a; clarsimp; erule_tac x = i in allE; clarsimp)
-    apply (clarsimp split: atyp.splits)
-    apply (case_tac s, (case_tac s', simp_all)+)[]
-   apply (clarsimp split: atyp.splits)
-  apply (clarsimp split: atyp.splits)
-
-(*
-          apply (case_tac s; blast elim: bang_sigil.elims) 
-         apply (case_tac s; blast elim: bang_sigil.elims)[]
-        apply (case_tac s) blast elim: bang_sigil.elims)[] 
-       apply simp+
-   apply (clarsimp split: atyp.splits)
-     apply (case_tac s, (case_tac s', simp_all)+)[]
-    apply (case_tac s, (case_tac s', simp_all)+)[]
+  apply (unfold_locales; clarsimp split: atyp.splits)
+        apply (case_tac s; clarsimp; case_tac x11a; simp)
+       apply (case_tac s; clarsimp; case_tac x11a; simp)
+      apply (case_tac s; clarsimp; case_tac x11a; simp)
+     apply (case_tac s; clarsimp; case_tac x11a; simp)
+    apply (case_tac s; clarsimp; case_tac x11a; clarsimp; erule_tac x = i in allE; clarsimp)
    apply (case_tac s, (case_tac s', simp_all)+)[]
-  apply (clarsimp split: atyp.splits)
-*)
-  sorry
+  apply (unfold UpdateSemantics.frame_def)
+  apply (erule_tac x = "x12 + 4 * i" in allE; clarsimp)
+  apply (erule_tac x = i in allE; clarsimp)
+  apply (rule_tac x = x in exI)
+  apply (case_tac s; clarsimp; case_tac x11a; clarsimp)
+   apply (drule_tac x = "x12 + 4 * i" in orthD1; simp)
+   apply (rule_tac x = i in exI; simp)
+  apply (drule_tac x = "x12 + 4 * i" in orthD1; simp)
+  apply (rule_tac x = i in exI; simp)
+  done
 
 sublocale WordArray \<subseteq> Generated t abs_typing' abs_repr'
   apply (unfold abs_repr'_def[abs_def] abs_typing'_def[abs_def])
-  apply unfold_locales
-        apply (clarsimp split: atyp.splits)
-          apply (case_tac s; blast elim: bang_sigil.elims)+
-   apply (clarsimp split: atyp.splits)
-     apply (case_tac s, case_tac s', simp_all)
-    apply (case_tac s, case_tac s', simp_all)
-   apply (case_tac s, case_tac s', simp_all)
-  apply (clarsimp split: atyp.splits)
+  apply (unfold_locales; clarsimp split: atyp.splits)
+         apply (case_tac s; clarsimp; case_tac x11a; clarsimp)
+        apply (case_tac s; clarsimp; case_tac x11a; clarsimp)
+       apply (case_tac s; clarsimp; case_tac x11a; clarsimp)
+      apply (case_tac s; clarsimp; case_tac x11a; clarsimp)
+     apply (case_tac s; clarsimp; case_tac x11a; clarsimp; erule_tac x = i in allE; clarsimp)
+    apply (case_tac s, (case_tac s', simp_all)+)[]
+  apply (unfold UpdateSemantics.frame_def)
+  apply (erule_tac x = "x12 + 4 * i" in allE; clarsimp)
+  apply (erule_tac x = i in allE; clarsimp)
+  apply (rule_tac x = x in exI)
+  apply (case_tac s; clarsimp; case_tac x11a; clarsimp)
+   apply (drule_tac x = "x12 + 4 * i" in orthD1; simp)
+   apply (rule_tac x = i in exI; simp)
+  apply (drule_tac x = "x12 + 4 * i" in orthD1; simp)
+  apply (rule_tac x = i in exI; simp)
   done
 
 context WordArray begin
-
+lemma " \<And>s r w \<sigma> frame w1 w2 \<sigma>' x11 x12 i x.
+       \<lbrakk>frame \<sigma> w1 \<sigma>' w2; w \<inter> w1 = {}; r \<inter> w1 = {}; s \<noteq> Unboxed;
+        sigil_perm s = Some ReadOnly \<longrightarrow> w = {} \<and> r = {x12 + 4 * i |i. i < x11};
+        sigil_perm s = Some Writable \<longrightarrow> r = {} \<and> w = {x12 + 4 * i |i. i < x11}; i < x11; \<sigma> (x12 + 4 * i) = Some (UPrim (LU32 x))\<rbrakk>
+       \<Longrightarrow> \<exists>x. \<sigma>' (x12 + 4 * i) = Some (UPrim (LU32 x))"
+  oops
 section "Extract Proof Obligation"
 
 ML \<open>
