@@ -20,6 +20,10 @@ datatype atyp =  WAU32 "32 word" "32 word" | TOther
 type_synonym abstyp = atyp
 
 (*type_synonym abstyp = unit*)
+(*
+datatype vatyp = VWAU32 "32 word list" | VTOther unit
+type_synonym vabstyp = vatyp
+*)
 
 (* FIXME this changes depending on L4V_ARCH ! *)
 type_synonym ptrtyp = "32 word"
