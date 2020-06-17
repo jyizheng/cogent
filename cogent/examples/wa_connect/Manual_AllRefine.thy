@@ -24,9 +24,9 @@ thm wordarray_put2'
 
 thm valRel_WordArrayU32
 
-definition \<xi>_0' :: "(char list, atyp, 32 word) uabsfuns" 
+definition \<xi>0 :: "(char list, atyp, 32 word) uabsfuns" 
   where
-  "\<xi>_0' x y z = 
+  "\<xi>0 x y z = 
       (let (y1, y2) = y;
            (z1, z2) = z
       in
@@ -162,14 +162,14 @@ context WordArray begin
 
 section "Prove Correspondence From Isabelle Shallow Embedding to C"
 
-theorem manual_generated_theorem':
+theorem shallow_C_wordarray_put2_corres:
 "\<lbrakk>\<And>i \<gamma> v' \<Gamma>' \<sigma> st.
     \<lbrakk>i < length \<gamma>; val_rel (\<gamma> ! i) v'; \<Gamma>' ! i = option.Some (prod.fst (prod.snd wordarray_put2_0_type))\<rbrakk>
     \<Longrightarrow> update_sem_init.corres abs_typing_u abs_repr_u (Generated.state_rel abs_repr_u) (App (AFun ''wordarray_put2_0'' []) (Var i))
          (do x <- wordarray_put2_0' v';
              gets (\<lambda>s. x)
           od)
-         \<xi>_0' \<gamma>
+         \<xi>0 \<gamma>
          (assoc_lookup
            [(''wordarray_put2_0'', wordarray_put2_0_type), (''wordarray_put2_u32'', Generated_TypeProof.wordarray_put2_u32_type)]
            ([], TUnit, TUnit))
@@ -180,7 +180,7 @@ theorem manual_generated_theorem':
  value_sem.proc_env_matches abs_typing_v \<xi>m \<Xi>;
  value_sem.matches abs_typing_v \<Xi> [vv\<^sub>m] [option.Some (prod.fst (prod.snd Generated_TypeProof.wordarray_put2_u32_type))]\<rbrakk>
 \<Longrightarrow> correspondence_init.corres_shallow_C abs_repr_u abs_typing_u abs_upd_val' rename (Generated.state_rel abs_repr_u)
-     (Generated_Shallow_Desugar.wordarray_put2_u32 vv\<^sub>s) Generated_TypeProof.wordarray_put2_u32 (wordarray_put2_u32' uv\<^sub>C) \<xi>_0' \<xi>m \<xi>p
+     (Generated_Shallow_Desugar.wordarray_put2_u32 vv\<^sub>s) Generated_TypeProof.wordarray_put2_u32 (wordarray_put2_u32' uv\<^sub>C) \<xi>0 \<xi>m \<xi>p
      [uv\<^sub>m] [vv\<^sub>m] \<Xi> [option.Some (prod.fst (prod.snd Generated_TypeProof.wordarray_put2_u32_type))] \<sigma> s"
   apply clarsimp
   apply (subgoal_tac "\<exists>arr idx val. vv\<^sub>s = \<lparr>WordArrayPutP.arr\<^sub>f = arr, idx\<^sub>f = idx, val\<^sub>f = val\<rparr>")
@@ -276,7 +276,7 @@ theorem manual_generated_theorem':
   apply (rule_tac x = "TCon ''WordArray'' [TPrim (Num U32)] (Boxed Writable undefined)" in exI)
   apply (rule_tac x = ra in exI)
   apply (rule_tac x = "insert (ptr_val (arr_C uv\<^sub>C)) wa" in exI)
-  apply (clarsimp simp: \<xi>_0'_def)
+  apply (clarsimp simp: \<xi>0_def)
   apply (rule_tac ptrl = undefined and a = a in u_v_p_abs_w[where ts = "[TPrim (Num U32)]", simplified])
      apply simp
     apply (clarsimp simp: abs_upd_val'_def)
@@ -305,25 +305,7 @@ theorem manual_generated_theorem':
 
 section "Sanity Checks"
 
-lemma value_matches_assm: 
-  "\<lbrakk>valRel \<xi>p (arr :: (32 word) WordArray) (VAbstract (VWA arrv))\<rbrakk> \<Longrightarrow>
-    val.matches \<Xi> [VRecord [VAbstract (VWA arrv), VPrim (LU32 (idx :: 32 word)), VPrim (LU32 (val :: 32 word))]]
-    [option.Some (prod.fst (prod.snd Generated_TypeProof.wordarray_put2_u32_type))]"
-  apply (clarsimp simp: val.matches_def Generated_TypeProof.wordarray_put2_u32_type_def Generated_TypeProof.abbreviatedType1_def)
-  apply (rule val.v_t_record)
-   apply (rule val.v_t_r_cons1)
-    apply (rule val.v_t_abstract)
-     apply (clarsimp simp: abs_typing_v_def valRel_WordArrayU32)
-    apply fastforce
-   apply (rule val.v_t_r_cons1)
-    apply auto[1]
-   apply (rule val.v_t_r_cons1)
-    apply auto[1]
-   apply (rule val.v_t_r_empty)
-  apply auto
-  done
-
-lemma value_sem_rename_mono_prog_assm: 
+lemma value_sem_rename_mono_prog_rename_\<Xi>_\<xi>m_\<xi>p: 
   "value_sem.rename_mono_prog abs_typing_v rename \<Xi> \<xi>m \<xi>p"
   apply (clarsimp simp: rename_def \<Xi>_def \<xi>m_def \<xi>p_def val.rename_mono_prog_def)
   apply (rule conjI)
@@ -350,7 +332,7 @@ lemma value_sem_rename_mono_prog_assm:
   apply (case_tac "f = ''wordarray_put2''"; clarsimp)
   done
 
-lemma val_proc_env_matches_assm:
+lemma val_proc_env_matches_\<xi>m_\<Xi>:
   "val.proc_env_matches \<xi>m \<Xi>"
   apply (clarsimp simp: val.proc_env_matches_def \<Xi>_def)
   apply (case_tac "f = ''wordarray_put2_0''")
@@ -383,16 +365,17 @@ lemma val_proc_env_matches_assm:
   apply simp
   done
 
-lemma "proc_env_u_v_matches \<xi>_0' \<xi>m \<Xi>"
+lemma proc_env_u_v_matches_\<xi>0_\<xi>m_\<Xi>:
+  "proc_env_u_v_matches \<xi>0 \<xi>m \<Xi>"
   apply (clarsimp simp: proc_env_u_v_matches_def)
   apply (clarsimp simp: \<Xi>_def)
   apply (case_tac "f = ''wordarray_put2_0''")
    prefer 2
-   apply (case_tac "f = ''wordarray_put2_u32''"; clarsimp simp: \<xi>_0'_def)
+   apply (case_tac "f = ''wordarray_put2_u32''"; clarsimp simp: \<xi>0_def)
   apply clarsimp
   apply (subst (asm) wordarray_put2_0_type_def)
   apply clarsimp
-  apply (clarsimp simp: \<xi>_0'_def)
+  apply (clarsimp simp: \<xi>0_def)
   apply (case_tac aa; clarsimp)
   apply (case_tac x4; clarsimp)
   apply (case_tac a; clarsimp)
@@ -464,8 +447,8 @@ lemma "proc_env_u_v_matches \<xi>_0' \<xi>m \<Xi>"
   apply (clarsimp simp: \<xi>m_def)
   done
 
-lemma upd_proc_env_matches_ptrs_assm:
-  "upd.proc_env_matches_ptrs \<xi>_0' \<Xi>"
+lemma upd_proc_env_matches_ptrs_\<xi>0_\<Xi>:
+  "upd.proc_env_matches_ptrs \<xi>0 \<Xi>"
   apply (unfold upd.proc_env_matches_ptrs_def)
   apply clarsimp
   apply (subst (asm) \<Xi>_def)
@@ -473,7 +456,7 @@ lemma upd_proc_env_matches_ptrs_assm:
    apply clarsimp
    apply (clarsimp simp: wordarray_put2_0_type_def abbreviatedType1_def)
    apply (clarsimp simp:  \<Xi>_def)
-   apply (case_tac v; clarsimp simp: \<xi>_0'_def)
+   apply (case_tac v; clarsimp simp: \<xi>0_def)
    apply (case_tac x4; clarsimp)
    apply (case_tac a; clarsimp)
    apply (case_tac list; clarsimp)
@@ -511,12 +494,12 @@ lemma upd_proc_env_matches_ptrs_assm:
     apply (rule conjI; clarsimp)
    apply (clarsimp simp: abs_typing_u_def)
   apply (case_tac  "f = ''wordarray_put2_u32''")
-   apply (clarsimp simp: wordarray_put2_u32_type_def abbreviatedType1_def \<xi>_0'_def)
-  apply (clarsimp simp: \<xi>_0'_def)
+   apply (clarsimp simp: wordarray_put2_u32_type_def abbreviatedType1_def \<xi>0_def)
+  apply (clarsimp simp: \<xi>0_def)
   done
 
 
-lemma proc_ctx_wellformed_assm:
+lemma proc_ctx_wellformed_\<Xi>:
   "proc_ctx_wellformed \<Xi>"
   apply (clarsimp simp: proc_ctx_wellformed_def \<Xi>_def)
   apply (case_tac "f = ''wordarray_put2_0''"; clarsimp)
@@ -525,7 +508,95 @@ lemma proc_ctx_wellformed_assm:
   apply (clarsimp simp: wordarray_put2_u32_type_def abbreviatedType1_def)
   done
 
+
+lemma upd_C_wordarray_put2_corres:
+  "\<And>i \<gamma> v' \<Gamma>' \<sigma> st.
+    \<lbrakk>i < length \<gamma>; val_rel (\<gamma> ! i) v'; \<Gamma>' ! i = option.Some (prod.fst (prod.snd wordarray_put2_0_type))\<rbrakk>
+    \<Longrightarrow> update_sem_init.corres abs_typing_u abs_repr_u (Generated.state_rel abs_repr_u) (App (AFun ''wordarray_put2_0'' []) (Var i))
+         (do x <- wordarray_put2_0' v';
+             gets (\<lambda>s. x)
+          od)
+         \<xi>0 \<gamma>
+         (assoc_lookup
+           [(''wordarray_put2_0'', wordarray_put2_0_type), (''wordarray_put2_u32'', Generated_TypeProof.wordarray_put2_u32_type)]
+           ([], TUnit, TUnit))
+         \<Gamma>' \<sigma> st"
+  apply (rule afun_corres; simp)
+  apply (clarsimp simp: abs_rel_def; rename_tac r w)
+  apply (thin_tac "i < length \<gamma>")
+  apply (thin_tac "val_rel (\<gamma> ! i) v'")
+  apply (thin_tac "\<Gamma>' ! i = option.Some (prod.fst (prod.snd wordarray_put2_0_type))")
+  apply (clarsimp simp: val_rel_simp wordarray_put2_0_type_def abbreviatedType1_def)
+  apply (erule upd.u_t_recE)
+  apply (erule upd.u_t_r_consE; clarsimp)+
+  apply (erule upd.u_t_primE)+
+  apply (subst (asm) lit_type.simps)+
+  apply clarsimp
+  apply (erule upd.u_t_r_emptyE)
+  apply (erule upd.u_t_p_absE; clarsimp simp: abs_typing_u_def)
+  apply (case_tac a; clarsimp)
+  apply (rule conjI)
+   apply (monad_eq simp: wordarray_put2_0'_def)
+   apply (clarsimp simp: state_rel_def heap_rel_def)
+   apply (erule_tac x = "arr_C x'" in allE)
+   apply (erule_tac x = "values_C (heap_WordArray_u32_C st (arr_C x')) +\<^sub>p uint (idx_C x')" in allE)
+   apply (clarsimp simp: heap_rel_ptr_def heap_rel_ptr_w32_def abs_repr_u_def is_valid_simp type_rel_simp)
+   apply (erule_tac x = "idx_C x'" in allE)+
+   apply (clarsimp simp: val_rel_simp heap_simp type_rel_simp)
+  apply clarsimp
+  apply (rule_tac x = "\<lambda>l. (case (\<sigma> \<circ> ptr_val \<circ> arr_C) x' of 
+                                option.Some (UAbstract (WAU32 len arr)) \<Rightarrow>
+                                      (if l = arr + 4 * idx_C x' \<and> idx_C x' < len 
+                                          then option.Some (UPrim (LU32 (val_C x'))) 
+                                      else \<sigma> l)
+                              | _  \<Rightarrow> \<sigma> l)" in exI)
+  apply (rule_tac x = "UPtr (ptr_val y') (RCon ''WordArray'' [RPrim (Num U32)])" in exI)
+  apply (rule conjI)
+   apply (monad_eq simp: wordarray_put2_0'_def \<xi>0_def)
+  apply (rule conjI)
+   apply (rule_tac x = "RCon ''WordArray'' [RPrim (Num U32)]" in exI, simp)
+  apply (clarsimp simp: state_rel_def heap_rel_def heap_rel_ptr_meta heap_rel_ptr_w32_meta)
+  apply (rule conjI)
+   apply (clarsimp simp: heap_rel_meta_def)
+   apply (rule conjI; clarsimp)
+    apply (clarsimp simp: type_rel_simp)
+   apply (monad_eq simp: wordarray_put2_0'_def)
+   apply (case_tac "idx_C x' < SCAST(32 signed \<rightarrow> 32) (len_C (heap_WordArray_u32_C st (arr_C x')))"; 
+          drule_tac p = x and uv = uv in all_heap_rel_ptrD; clarsimp simp: is_valid_simp heap_simp)
+  apply (erule_tac x = "arr_C x'" in allE)
+  apply (clarsimp simp: heap_rel_meta_def abs_repr_u_def type_rel_simp val_rel_simp)
+  apply (monad_eq simp: wordarray_put2_0'_def heap_simp is_valid_simp)
+  apply (rule conjI; clarsimp)
+   apply (drule_tac p = "values_C (heap_WordArray_u32_C st (arr_C x')) +\<^sub>p uint (idx_C x')" and 
+                   uv = uv in all_heap_rel_ptrD; clarsimp simp: type_rel_simp val_rel_simp)
+  apply (rule conjI)
+   apply (clarsimp simp: ptr_add_def)
+   apply (metis Ptr_ptr_val mult.commute)
+  apply clarsimp
+  apply (case_tac "idx_C x' < SCAST(32 signed \<rightarrow> 32) (len_C (heap_WordArray_u32_C st (arr_C x')))";
+         drule_tac p = x and uv = uv in all_heap_rel_ptrD; clarsimp simp: type_rel_simp val_rel_simp)
+  done
+
 (*
+lemma value_matches_assm: 
+  "\<lbrakk>valRel \<xi>p (arr :: (32 word) WordArray) (VAbstract (VWA arrv))\<rbrakk> \<Longrightarrow>
+    val.matches \<Xi> [VRecord [VAbstract (VWA arrv), VPrim (LU32 (idx :: 32 word)), VPrim (LU32 (val :: 32 word))]]
+    [option.Some (prod.fst (prod.snd Generated_TypeProof.wordarray_put2_u32_type))]"
+  apply (clarsimp simp: val.matches_def Generated_TypeProof.wordarray_put2_u32_type_def Generated_TypeProof.abbreviatedType1_def)
+  apply (rule val.v_t_record)
+   apply (rule val.v_t_r_cons1)
+    apply (rule val.v_t_abstract)
+     apply (clarsimp simp: abs_typing_v_def valRel_WordArrayU32)
+    apply fastforce
+   apply (rule val.v_t_r_cons1)
+    apply auto[1]
+   apply (rule val.v_t_r_cons1)
+    apply auto[1]
+   apply (rule val.v_t_r_empty)
+  apply auto
+  done
+
+
 lemma 
   "\<lbrakk>\<sigma> p = option.Some (UAbstract (WAU32 len arr)); 4 * unat len \<le> unat (max_word :: ptrtyp); 
     \<forall>i < len. \<exists>x. \<sigma>(arr + 4 * i) = option.Some (UPrim (LU32 x));
@@ -554,13 +625,46 @@ lemma
        apply (rule conjI)
         apply (clarsimp simp: abs_typing_u_def)
        apply (rule conjI)
-  apply (clarsimp simp: abs_typing_v_def)
-  oops
+        apply (clarsimp simp: abs_typing_v_def)
+        defer
+        defer
+        apply simp
+       apply clarsimp
+       apply (erule_tac x = i in allE)
+       apply clarsimp
+      prefer 2
+      apply simp
+     prefer 2
+     apply clarsimp
+     apply (drule meta_mp)
+      apply (rule u_v_matches_empty[where \<tau>s = "[]", simplified])
+     apply simp
+    apply (rule u_v_r_cons1[of \<Xi> \<sigma> "UPrim (LU32 idx)" 
+                                 "VPrim (LU32 idx)" 
+                                 "TPrim (Num U32)"
+                                 "{}" "{}" 
+                                 "[(UPrim (LU32 val), RPrim (Num U32))]" 
+                                 "[VPrim (LU32 val)]" 
+                                 "[(''val'', TPrim (Num U32), Present)]"
+                                 "{}" "{}" "RPrim (Num U32)" "''idx''", simplified])
+     apply (metis lit_type.simps(4) upd_val_rel_upd_val_rel_record.intros(1))
+    apply (rule u_v_r_cons1[of \<Xi> \<sigma> "UPrim (LU32 val)" 
+                                 "VPrim (LU32 val)" 
+                                 "TPrim (Num U32)"
+                                 "{}" "{}" 
+                                 "[]" 
+                                 "[]" 
+                                 "[]"
+                                 "{}" "{}" "RPrim (Num U32)" "''val''", simplified])
+     apply (metis lit_type.simps(4) upd_val_rel_upd_val_rel_record.intros(1))
+  apply (rule u_v_r_empty)
+  oops                   
 *)
 
-section "Alternate Attempt"
 (*
-theorem manual_generated_theorem:
+section "Alternate Attempt"
+
+theorem manual_generated_theorem':
 "\<lbrakk>Generated_cogent_shallow abs_repr_u abs_typing_v abs_typing_u abs_upd_val';
  \<And>i \<gamma> v' \<Gamma>' \<sigma> st.
     \<lbrakk>i < length \<gamma>; val_rel (\<gamma> ! i) v'; \<Gamma>' ! i = option.Some (prod.fst (prod.snd wordarray_put2_0_type))\<rbrakk>
@@ -568,7 +672,7 @@ theorem manual_generated_theorem:
          (do x <- wordarray_put2_0' v';
              gets (\<lambda>s. x)
           od)
-         \<xi>_0' \<gamma>
+         \<xi>0 \<gamma>
          (assoc_lookup
            [(''wordarray_put2_0'', wordarray_put2_0_type), (''wordarray_put2_u32'', Generated_TypeProof.wordarray_put2_u32_type)]
            ([], TUnit, TUnit))
@@ -579,7 +683,7 @@ theorem manual_generated_theorem:
  value_sem.proc_env_matches abs_typing_v \<xi>m \<Xi>;
  value_sem.matches abs_typing_v \<Xi> [vv\<^sub>m] [option.Some (prod.fst (prod.snd Generated_TypeProof.wordarray_put2_u32_type))]\<rbrakk>
 \<Longrightarrow> correspondence_init.corres_shallow_C abs_repr_u abs_typing_u abs_upd_val' rename (Generated.state_rel abs_repr_u)
-     (Generated_Shallow_Desugar.wordarray_put2_u32 vv\<^sub>s) Generated_TypeProof.wordarray_put2_u32 (wordarray_put2_u32' uv\<^sub>C) \<xi>_0' \<xi>m \<xi>p
+     (Generated_Shallow_Desugar.wordarray_put2_u32 vv\<^sub>s) Generated_TypeProof.wordarray_put2_u32 (wordarray_put2_u32' uv\<^sub>C) \<xi>0 \<xi>m \<xi>p
      [uv\<^sub>m] [vv\<^sub>m] \<Xi> [option.Some (prod.fst (prod.snd Generated_TypeProof.wordarray_put2_u32_type))] \<sigma> s"
   apply clarsimp
   apply (subgoal_tac "\<exists>arr idx val. vv\<^sub>s = \<lparr>WordArrayPutP.arr\<^sub>f = arr, idx\<^sub>f = idx, val\<^sub>f = val\<rparr>")
@@ -647,8 +751,13 @@ theorem manual_generated_theorem:
     apply (case_tac "i = unat idx"; clarsimp)
 
       apply (rule_tac ?\<Gamma>1.0 = "[option.Some (prod.fst (prod.snd Generated_TypeProof.wordarray_put2_u32_type))]" and
-                       ?\<Gamma>2.0 = "[]" and
+                       ?\<Gamma>2.0 = "[option.None]" and
                        t = "(prod.fst (prod.snd Generated_TypeProof.wordarray_put2_u32_type))" in typing_let)
+     apply (fastforce intro!: left simp: split_def wordarray_put2_u32_type_def abbreviatedType1_def)
+    apply (rule typing_var; clarsimp simp: Cogent.empty_def weakening_def)
+    apply (rule keep; clarsimp simp: wordarray_put2_u32_type_def abbreviatedType1_def)
+   
+(*
      prefer 2
      apply (rule typing_var; clarsimp simp: Cogent.empty_def)
      apply (clarsimp simp: weakening_conv_all_nth)
@@ -656,7 +765,7 @@ theorem manual_generated_theorem:
      apply (clarsimp simp: Generated_TypeProof.wordarray_put2_u32_type_def abbreviatedType1_def)
     apply (clarsimp simp: Generated_TypeProof.wordarray_put2_u32_type_def abbreviatedType1_def)
     apply (clarsimp simp: split_conv_all_nth)
-
+*)
 (*  apply (clarsimp simp: corres_shallow_C_def)*)
   oops
 *)
@@ -670,6 +779,95 @@ uv_m == value of the argument of the function, i.e. wordarray_put2, in the monom
 uv_c == value of the argument of the function, i.e. wordarray_put2, in the autocorres generated C
 *)
 
-value "size (0:: 32 word)"
+section "Stronger Correspondence defintions"
+
+definition
+  corres_strong ::
+  "((funtyp, abstyp, ptrtyp) store \<times> 's) set \<Rightarrow>
+   funtyp expr \<Rightarrow>
+   ('s,('a::cogent_C_val)) nondet_monad \<Rightarrow>
+   (funtyp, abstyp, ptrtyp) uabsfuns \<Rightarrow>
+   (funtyp, abstyp, ptrtyp) uval env \<Rightarrow>
+   (funtyp \<Rightarrow> poly_type) \<Rightarrow>
+   ctx \<Rightarrow>
+   (funtyp, abstyp, ptrtyp) store \<Rightarrow>
+   's \<Rightarrow>
+   bool"
+where
+  "corres_strong srel c m \<xi>' \<gamma> \<Xi>' \<Gamma>' \<sigma> s \<equiv>
+   (\<sigma>,s) \<in> srel \<longrightarrow>
+   (\<exists>r w. upd.matches_ptrs \<Xi>' \<sigma> \<gamma> \<Gamma>' r w \<longrightarrow>
+   (\<not> prod.snd (m s)) \<and>
+   (\<forall>r' s'. (r',s') \<in> prod.fst (m s) \<longrightarrow>
+     (\<exists>\<sigma>' r.(\<xi>', \<gamma> \<turnstile> (\<sigma>,c)  \<Down>! (\<sigma>',r)) \<and> (\<sigma>',s') \<in> srel \<and> val_rel r r')))"
+
+definition corres_shallow_C_strong where
+  "corres_shallow_C_strong
+     (rename' :: funtyp \<times> type list \<Rightarrow> funtyp)
+     (srel :: ((funtyp, abstyp, ptrtyp) store \<times> 's) set)
+     (v\<^sub>s :: 'sv)
+     (prog\<^sub>m :: funtyp expr)
+     (prog\<^sub>C :: ('s, 'cv :: cogent_C_val) nondet_monad)
+     (\<xi>\<^sub>u\<^sub>m :: (funtyp, abstyp, ptrtyp) uabsfuns)
+     (\<xi>\<^sub>v\<^sub>m :: (funtyp, vabstyp) vabsfuns)
+     (\<xi>\<^sub>v\<^sub>p :: (funtyp, vabstyp) vabsfuns)
+     (\<gamma>\<^sub>u\<^sub>m :: (funtyp, abstyp, ptrtyp) uval env)
+     (\<gamma>\<^sub>v\<^sub>m :: (funtyp, vabstyp) vval env)
+     (\<Xi>\<^sub>m :: funtyp \<Rightarrow> poly_type)
+     (\<Gamma>\<^sub>m :: ctx)
+     (\<sigma> :: (funtyp, abstyp, ptrtyp) store)
+     (s :: 's) \<equiv>
+   upd.proc_env_matches_ptrs \<xi>\<^sub>u\<^sub>m \<Xi>\<^sub>m \<longrightarrow>
+   (\<sigma>, s) \<in> srel \<longrightarrow>
+   (\<exists>r w. u_v_matches \<Xi>\<^sub>m \<sigma> \<gamma>\<^sub>u\<^sub>m \<gamma>\<^sub>v\<^sub>m \<Gamma>\<^sub>m r w) \<longrightarrow>
+   (\<not> prod.snd (prog\<^sub>C s) \<and>
+   (\<forall>r' s'. (r', s') \<in> prod.fst (prog\<^sub>C s) \<longrightarrow>
+     (\<exists>\<sigma>' v\<^sub>u\<^sub>m v\<^sub>p.
+      (\<xi>\<^sub>u\<^sub>m, \<gamma>\<^sub>u\<^sub>m \<turnstile> (\<sigma>, prog\<^sub>m) \<Down>! (\<sigma>', v\<^sub>u\<^sub>m)) \<and>
+       (\<xi>\<^sub>v\<^sub>m, \<gamma>\<^sub>v\<^sub>m \<turnstile> prog\<^sub>m \<Down> val.rename_val rename' (val.monoval v\<^sub>p)) \<and>
+       (\<sigma>', s') \<in> srel \<and>
+       val_rel_shallow_C rename v\<^sub>s r' v\<^sub>p v\<^sub>u\<^sub>m \<xi>\<^sub>v\<^sub>p \<sigma>' \<Xi>\<^sub>m)))"
+
+section "Stronger Correspondence Lemmas/Theorems"
+
+lemma upd_C_wordarray_put2_corres_strong:
+  "\<And>i \<gamma> v' \<Gamma>' \<sigma> st.
+    \<lbrakk>i < length \<gamma>; val_rel (\<gamma> ! i) v'; \<Gamma>' ! i = option.Some (prod.fst (prod.snd wordarray_put2_0_type))\<rbrakk>
+    \<Longrightarrow> corres_strong  (Generated.state_rel abs_repr_u) (App (AFun ''wordarray_put2_0'' []) (Var i))
+         (do x <- wordarray_put2_0' v';
+             gets (\<lambda>s. x)
+          od)
+         \<xi>0 \<gamma>
+         (assoc_lookup
+           [(''wordarray_put2_0'', wordarray_put2_0_type), (''wordarray_put2_u32'', Generated_TypeProof.wordarray_put2_u32_type)]
+           ([], TUnit, TUnit))
+         \<Gamma>' \<sigma> st"
+  apply (insert proc_ctx_wellformed_\<Xi> upd_proc_env_matches_ptrs_\<xi>0_\<Xi>)
+  apply (unfold corres_strong_def)
+  apply (drule_tac i  = i  and 
+                   \<gamma>  = \<gamma>  and 
+                   v' = v' and
+                   \<Gamma>' = \<Gamma>' and
+                   \<sigma>  = \<sigma>  and
+                   st = st in upd_C_wordarray_put2_corres; clarsimp simp: corres_def \<Xi>_def)
+  
+  done
+
+theorem shallow_C_wordarray_put2_corres_strong:
+"\<lbrakk>vv\<^sub>m = value_sem.rename_val rename (value_sem.monoval vv\<^sub>p);
+ correspondence_init.val_rel_shallow_C abs_repr_u abs_upd_val' rename vv\<^sub>s uv\<^sub>C vv\<^sub>p uv\<^sub>m \<xi>p \<sigma> \<Xi>; 
+ value_sem.matches abs_typing_v \<Xi> [vv\<^sub>m] [option.Some (prod.fst (prod.snd Generated_TypeProof.wordarray_put2_u32_type))]\<rbrakk>
+\<Longrightarrow> correspondence_init.corres_shallow_C abs_repr_u abs_typing_u abs_upd_val' rename (Generated.state_rel abs_repr_u)
+     (Generated_Shallow_Desugar.wordarray_put2_u32 vv\<^sub>s) Generated_TypeProof.wordarray_put2_u32 (wordarray_put2_u32' uv\<^sub>C) \<xi>0 \<xi>m \<xi>p
+     [uv\<^sub>m] [vv\<^sub>m] \<Xi> [option.Some (prod.fst (prod.snd Generated_TypeProof.wordarray_put2_u32_type))] \<sigma> s"
+  apply (insert value_sem_rename_mono_prog_rename_\<Xi>_\<xi>m_\<xi>p 
+                val_proc_env_matches_\<xi>m_\<Xi> 
+                proc_env_u_v_matches_\<xi>0_\<xi>m_\<Xi>
+                proc_ctx_wellformed_\<Xi>
+                upd_C_wordarray_put2_corres
+                upd_proc_env_matches_ptrs_\<xi>0_\<Xi>)
+  apply (rule shallow_C_wordarray_put2_corres; simp)
+  done
+
 end (* of context *)
 end
