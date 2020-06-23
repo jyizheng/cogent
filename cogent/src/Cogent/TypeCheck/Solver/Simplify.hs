@@ -125,10 +125,10 @@ simplify ks ts = Rewrite.pickOne' $ onGoal $ \case
   Exhaustive t ps | any isIrrefutable ps -> hoistMaybe $ Just []
   Exhaustive (V r) []
     | Row.isComplete r ->
-      null (Row.presentPayloads r) 
-        `elseDie` PatternsNotExhaustive (V r) (Row.presentLabels r) 
-  Exhaustive (V r) (RP (PCon t _):ps) 
-    | isNothing (Row.var r) -> 
+      null (Row.presentPayloads r)
+        `elseDie` PatternsNotExhaustive (V r) (Row.presentLabels r)
+  Exhaustive (V r) (RP (PCon t _):ps)
+    | isNothing (Row.var r) ->
       hoistMaybe $ Just [Exhaustive (V (Row.take t r)) ps]
 
   Exhaustive tau@(T (TCon "Bool" [] Unboxed)) [RP (PBoolLit t), RP (PBoolLit f)]
@@ -145,9 +145,9 @@ simplify ks ts = Rewrite.pickOne' $ onGoal $ \case
   -- [amos] New simplify rule:
   -- If both sides of an equality constraint are equal, we can't completely discharge it;
   -- we need to make sure all unification variables in the type are instantiated at some point
-  t :=: u | t == u -> 
-    hoistMaybe $ if isSolved t then 
-      Just [] 
+  t :=: u | t == u ->
+    hoistMaybe $ if isSolved t then
+      Just []
     else
       Just [Solved t]
 
@@ -182,6 +182,8 @@ simplify ks ts = Rewrite.pickOne' $ onGoal $ \case
 
   TLOffset e _   :~ tau -> hoistMaybe $ Just [e :~ tau]
 
+  TLEndian e _   :~ tau -> hoistMaybe $ Just [e :~ tau]
+
   TLPrim n       :~ tau
     | isPrimType tau
     , primTypeSize tau <= evalSize n
@@ -210,6 +212,7 @@ simplify ks ts = Rewrite.pickOne' $ onGoal $ \case
   TLVar v1         :~< TLVar v2      | v1 == v2 -> hoistMaybe $ Just []
   TLPrim n1        :~< TLPrim n2     | n1 <= n2 -> hoistMaybe $ Just []
   TLOffset e1 _    :~< TLOffset e2 _ -> hoistMaybe $ Just [e1 :~< e2]
+  TLEndian e1 _    :~< TLEndian e2 _ -> hoistMaybe $ Just [e1 :~< e2]
 
   TLRecord fs1     :~< TLRecord fs2
     | r1 <- LRow.fromList $ map (\(a,b,c) -> (a,c,())) fs1
@@ -338,7 +341,7 @@ simplify ks ts = Rewrite.pickOne' $ onGoal $ \case
     hoistMaybe $ Just ([Arith (SE (T (TCon "Bool" [] Unboxed)) (PrimOp "==" [l1,l2])), t1 :=: t2, drop] <> c)
 
   a :-> b -> __fixme $ hoistMaybe $ Just [b]  -- FIXME: cuerently we ignore the impls. / zilinc
-  
+
   -- TODO: Here we will call a SMT procedure to simplify all the Arith constraints.
   -- The only things left will be non-trivial predicates. / zilinc
   Arith e | isTrivialSE e -> do
