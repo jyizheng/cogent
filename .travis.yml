@@ -70,7 +70,7 @@ install:
  - "sed -i 's/^jobs:.*$/jobs: 2/' $HOME/.cabal/config"
  # - sed -i 's/^jobs:/ jobs:/' ${HOME}/.cabal/config
 
- - travis_wait 50 cabal new-install --flags="+builtin-arrays +haskell-backend +docgent" --installdir=$HOME/.cabal/bin --overwrite-policy=always;  # --enable-tests;
+ - travis_wait 50 cabal new-install --installdir=$HOME/.cabal/bin --overwrite-policy=always;  # --enable-tests;
 
 # Install z3
  - cd $REPO
