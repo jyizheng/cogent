@@ -42,9 +42,9 @@ end
 
 section "\<xi> Abstractions"
 
-definition upd_wordarray_put2_0
+definition upd_wa_put2_0
   where
-  "upd_wordarray_put2_0 x y =
+  "upd_wa_put2_0 x y =
       (let (x1, x2) = x;
            (y1, y2) = y
       in (\<exists>p idx val. x2 = URecord [
@@ -54,9 +54,9 @@ definition upd_wordarray_put2_0
           y1 = (\<lambda>l. (if \<exists>len arr. x1 p = option.Some (UAbstract (WAU32 len arr)) \<and> 
                         l = arr + 4 * idx \<and> idx < len then option.Some (UPrim (LU32 val)) else x1 l))))"
 
-definition upd_wordarray_get_0
+definition upd_wa_get_0
   where
-  "upd_wordarray_get_0 x y =
+  "upd_wa_get_0 x y =
       (let (x1, x2) = x;
            (y1, y2) = y
       in x1 = y1 \<and> (\<exists>p idx len arr. x2 = URecord [
@@ -65,55 +65,55 @@ definition upd_wordarray_get_0
             (idx < len \<longrightarrow> x1 (arr + 4 * idx) = option.Some y2) \<and>
             (\<not> idx < len \<longrightarrow> y2 = UPrim (LU32 0))))"
 
-definition upd_wordarray_length_0
+definition upd_wa_length_0
   where
-  "upd_wordarray_length_0 x y =
+  "upd_wa_length_0 x y =
       (let (x1, x2) = x;
            (y1, y2) = y
       in x1 = y1 \<and> (\<exists>p len arr. x2 = UPtr p (RCon ''WordArray'' [RPrim (Num U32)]) \<and>
           x1 p = option.Some (UAbstract (WAU32 len arr)) \<and> y2 = UPrim (LU32 len)))"
 
-definition val_wordarray_length_0
+definition val_wa_length_0
   where
-  "val_wordarray_length_0 x y = (\<exists>xs len. x = VAbstract (VWA xs) \<and> y = VPrim (LU32 len) \<and> 
+  "val_wa_length_0 x y = (\<exists>xs len. x = VAbstract (VWA xs) \<and> y = VPrim (LU32 len) \<and> 
                                 length xs = unat len)" 
 
 
-definition val_wordarray_get_0
+definition val_wa_get_0
   where
-  "val_wordarray_get_0 x y =
+  "val_wa_get_0 x y =
       (\<exists>xs idx v. x = VRecord [VAbstract (VWA xs), VPrim (LU32 idx)] \<and> y = VPrim (LU32 v) \<and>
        (unat idx < length xs \<longrightarrow> xs ! unat idx = y) \<and> (\<not> unat idx < length xs \<longrightarrow> v = 0))" 
 
-definition val_wordarray_put2_0
+definition val_wa_put2_0
   where
-  "val_wordarray_put2_0 x y =
+  "val_wa_put2_0 x y =
       (\<exists>xs idx val. x = VRecord [VAbstract (VWA xs), VPrim (LU32 idx), VPrim (LU32 val)] \<and>
        y = VAbstract (VWA (xs[unat idx := VPrim (LU32 val)])))" 
 
 
-definition \<xi>0 :: "(char list, atyp, 32 word) uabsfuns" 
+fun \<xi>0 :: "(char list, atyp, 32 word) uabsfuns" 
   where
   "\<xi>0 x y z = 
-    (if x = ''wordarray_put2_0'' then upd_wordarray_put2_0 y z
-     else (if x = ''wordarray_get_0'' then upd_wordarray_get_0 y z
-           else (if x = ''wordarray_length_0'' then upd_wordarray_length_0 y z
+    (if x = ''wordarray_put2_0'' then upd_wa_put2_0 y z
+     else (if x = ''wordarray_get_0'' then upd_wa_get_0 y z
+           else (if x = ''wordarray_length_0'' then upd_wa_length_0 y z
                  else False)))" 
 
-definition \<xi>m :: "(char list, vatyp) vabsfuns" 
+fun \<xi>m :: "(char list, vatyp) vabsfuns" 
   where
   "\<xi>m x y z = 
-    (if x = ''wordarray_put2_0'' then val_wordarray_put2_0 y z
-     else (if x = ''wordarray_get_0'' then val_wordarray_get_0 y z
-           else (if x = ''wordarray_length_0'' then val_wordarray_length_0 y z
+    (if x = ''wordarray_put2_0'' then val_wa_put2_0 y z
+     else (if x = ''wordarray_get_0'' then val_wa_get_0 y z
+           else (if x = ''wordarray_length_0'' then val_wa_length_0 y z
                  else False)))" 
 
-definition \<xi>p :: "(char list, vatyp) vabsfuns" 
+fun \<xi>p :: "(char list, vatyp) vabsfuns" 
   where
   "\<xi>p x y z = 
-    (if x = ''wordarray_put2'' then val_wordarray_put2_0 y z
-     else (if x = ''wordarray_get'' then val_wordarray_get_0 y z
-           else (if x = ''wordarray_length'' then val_wordarray_length_0 y z
+    (if x = ''wordarray_put2'' then val_wa_put2_0 y z
+     else (if x = ''wordarray_get'' then val_wa_get_0 y z
+           else (if x = ''wordarray_length'' then val_wa_length_0 y z
                  else False)))" 
 
 lemma word_mult_cancel_left: 
@@ -217,35 +217,43 @@ section "Naturally True Shared Assumptions for Isabelle to C Correspondence Lemm
 lemma value_sem_rename_mono_prog_rename_\<Xi>_\<xi>m_\<xi>p: 
   "value_sem.rename_mono_prog abs_typing_v rename \<Xi> \<xi>m \<xi>p"
   apply (clarsimp simp: val.rename_mono_prog_def)
-  apply (rule_tac x = v' in exI)
-  apply (subst (asm) rename_def)
-  apply (clarsimp simp: \<xi>m_def \<xi>p_def)
-  apply (subst (asm) assoc_lookup.simps)+
-  apply (clarsimp split: if_split_asm)
-    apply (clarsimp simp: val_wordarray_put2_0_def)
-    apply (case_tac v; clarsimp)
-    apply (case_tac z; clarsimp)
-    apply (case_tac za; clarsimp)
-    apply (case_tac zb; clarsimp)
-   apply (clarsimp simp: val_wordarray_get_0_def)
+  apply (rule conjI; clarsimp)
+   apply (rule_tac x = v' in exI)
+   apply (subst (asm) rename_def)
+   apply (subst (asm) assoc_lookup.simps)+
+   apply (clarsimp split: if_split_asm simp: val_wa_length_0_def)
+   apply (case_tac v; clarsimp)
+  apply (rule conjI)
+   apply clarsimp
+   apply (rule_tac x = v' in exI)
+   apply (subst (asm) rename_def)
+   apply (subst (asm) assoc_lookup.simps)+
+   apply (clarsimp split: if_split_asm simp: val_wa_get_0_def)
    apply (case_tac v; clarsimp)
    apply (case_tac z; clarsimp)
    apply (case_tac za; clarsimp)
-  apply (clarsimp simp: val_wordarray_length_0_def)
+  apply clarsimp
+  apply (rule_tac x = v' in exI)
+  apply (subst (asm) rename_def)
+  apply (subst (asm) assoc_lookup.simps)+
+  apply (clarsimp split: if_split_asm simp: val_wa_put2_0_def)
   apply (case_tac v; clarsimp)
+  apply (case_tac z; clarsimp)
+  apply (case_tac za; clarsimp)
+  apply (case_tac zb; clarsimp)
   done
 
 lemma val_proc_env_matches_\<xi>m_\<Xi>:
   "val.proc_env_matches \<xi>m \<Xi>"
-  apply (clarsimp simp: val.proc_env_matches_def \<xi>m_def)
+  apply (clarsimp simp: val.proc_env_matches_def)
   apply (subst (asm) \<Xi>_def)
   apply (subst (asm) assoc_lookup.simps)+
   apply (clarsimp split: if_split_asm)
-    apply (clarsimp simp: wordarray_get_0_type_def abbreviatedType6_def \<xi>m_def val_wordarray_get_0_def)
+    apply (clarsimp simp: wordarray_get_0_type_def abbreviatedType6_def val_wa_get_0_def)
     apply (rule val.v_t_prim[where l = "(LU32 _)", simplified])
-   apply (clarsimp simp: wordarray_length_0_type_def \<xi>m_def val_wordarray_length_0_def)
+   apply (clarsimp simp: wordarray_length_0_type_def val_wa_length_0_def)
    apply (rule val.v_t_prim[where l = "(LU32 _)", simplified])
-  apply (clarsimp simp: wordarray_put2_0_type_def abbreviatedType5_def \<xi>m_def val_wordarray_put2_0_def)
+  apply (clarsimp simp: wordarray_put2_0_type_def abbreviatedType5_def val_wa_put2_0_def)
   apply (erule val.v_t_recordE)
   apply (erule val.v_t_r_consE; clarsimp)
    apply (erule val.v_t_abstractE)
@@ -263,8 +271,8 @@ lemma proc_env_u_v_matches_\<xi>0_\<xi>m_\<Xi>:
   apply (clarsimp simp: proc_env_u_v_matches_def)
   apply (subst (asm) \<Xi>_def)
   apply (subst (asm) assoc_lookup.simps)+
-  apply (clarsimp split: if_split_asm simp: \<xi>0_def)
-    apply (clarsimp simp: upd_wordarray_get_0_def wordarray_get_0_type_def abbreviatedType6_def)
+  apply (clarsimp split: if_split_asm)
+    apply (clarsimp simp: upd_wa_get_0_def wordarray_get_0_type_def abbreviatedType6_def)
     apply (erule u_v_recE'; clarsimp)
     apply (erule u_v_r_consE'; clarsimp)
     apply (erule u_v_p_absE'; clarsimp)
@@ -274,7 +282,7 @@ lemma proc_env_u_v_matches_\<xi>0_\<xi>m_\<Xi>:
     apply (subst (asm) lit_type.simps)+
     apply clarsimp
     apply (rule conjI)
-     apply (clarsimp simp: \<xi>m_def val_wordarray_get_0_def)
+     apply (clarsimp simp: val_wa_get_0_def)
      apply (rule_tac x = "{}" in exI)+
      apply (clarsimp simp: abs_upd_val'_def frame_def word_less_nat_alt)
      apply (erule_tac x = idx in allE)
@@ -285,80 +293,80 @@ lemma proc_env_u_v_matches_\<xi>0_\<xi>m_\<Xi>:
     apply (erule_tac x = idx in allE)
     apply (case_tac "unat idx < length x1"; clarsimp)
      apply (rule_tac x = "VPrim (LU32 x)" in exI)
-     apply (clarsimp simp: \<xi>m_def val_wordarray_get_0_def)
+     apply (clarsimp simp: val_wa_get_0_def)
     apply (rule_tac x = "VPrim (LU32 0)" in exI)
-    apply (clarsimp simp: \<xi>m_def val_wordarray_get_0_def)
-   apply (clarsimp simp: upd_wordarray_put2_0_def wordarray_put2_0_type_def abbreviatedType5_def)
-   apply (erule u_v_recE'; clarsimp)
-   apply (erule u_v_r_consE'; clarsimp)
+    apply (clarsimp simp: val_wa_get_0_def)
+   apply (clarsimp simp: upd_wa_length_0_def wordarray_length_0_type_def)
    apply (erule u_v_p_absE'; clarsimp)
-   apply (erule u_v_r_consE'; simp)
-   apply (erule conjE)+
-   apply (subst (asm) type_repr.simps[symmetric])+
-   apply clarsimp
-   apply (erule u_v_r_consE'; simp)
-   apply (erule conjE)+
-   apply (subst (asm) type_repr.simps[symmetric])+
-   apply clarsimp
-   apply (erule u_v_r_emptyE')
-   apply (erule u_v_primE')+
-   apply (subst (asm) lit_type.simps)+
+   apply (clarsimp simp: abs_upd_val'_def)
+   apply (case_tac a'a; clarsimp)
+   apply (rule conjI)
+    apply (clarsimp simp: val_wa_length_0_def)
+    apply (rule_tac x = "{}" in exI)+
+    apply (clarsimp simp: frame_def intro!: u_v_prim[where l = "(LU32 _)", simplified])
+   apply (clarsimp simp: abs_upd_val'_def)
+   apply (rule_tac x = "VPrim (LU32 len)" in exI)
+   apply (clarsimp simp: val_wa_length_0_def)
+  apply (clarsimp simp: upd_wa_put2_0_def wordarray_put2_0_type_def abbreviatedType5_def)
+  apply (erule u_v_recE'; clarsimp)
+  apply (erule u_v_r_consE'; clarsimp)
+  apply (erule u_v_p_absE'; clarsimp)
+  apply (erule u_v_r_consE'; simp)
+  apply (erule conjE)+
+  apply (subst (asm) type_repr.simps[symmetric])+
+  apply clarsimp
+  apply (erule u_v_r_consE'; simp)
+  apply (erule conjE)+
+  apply (subst (asm) type_repr.simps[symmetric])+
+  apply clarsimp
+  apply (erule u_v_r_emptyE')
+  apply (erule u_v_primE')+
+  apply (subst (asm) lit_type.simps)+
+  apply clarsimp
+  apply (rule conjI)
+   apply (clarsimp simp: val_wa_put2_0_def)
+   apply (rule_tac x = ra in exI)
+   apply (rule_tac x = "insert p w" in exI)
    apply clarsimp
    apply (rule conjI)
-    apply (clarsimp simp: \<xi>m_def val_wordarray_put2_0_def)
-    apply (rule_tac x = ra in exI)
-    apply (rule_tac x = "insert p w" in exI)
-    apply clarsimp
-    apply (rule conjI)
-     apply (rule_tac a = a and  ptrl = undefined in u_v_p_abs_w[where ts = "[TPrim (Num U32)]", simplified])
-        apply simp
-       apply (clarsimp simp: abs_upd_val'_def)
-       apply (case_tac a; clarsimp)
-       apply (rule conjI)
-        apply (clarsimp simp: abs_typing_u_def)
-       apply (rule conjI)
-        apply (clarsimp simp: abs_typing_v_def word_less_nat_alt)
-        apply (erule_tac x = i in allE)
-        apply (case_tac "i = unat idx"; clarsimp)
-       apply (clarsimp simp: word_less_nat_alt)
-       apply (rule conjI)
-        apply (drule distinct_indices)
-        apply (clarsimp simp: word_less_nat_alt)
-        apply (erule_tac x = i in allE)+
-        apply clarsimp
-        apply (erule_tac x = idx in allE)
-        apply clarsimp
-       apply clarsimp
-       apply (erule_tac x = i in allE)
-       apply clarsimp
-       apply (case_tac "unat i = unat idx"; clarsimp)
+    apply (rule_tac a = a and  ptrl = undefined in u_v_p_abs_w[where ts = "[TPrim (Num U32)]", simplified])
+       apply simp
       apply (clarsimp simp: abs_upd_val'_def)
-      apply (erule_tac x = idx in allE)
+      apply (case_tac a; clarsimp)
+      apply (rule conjI)
+       apply (clarsimp simp: abs_typing_u_def)
+      apply (rule conjI)
+       apply (clarsimp simp: abs_typing_v_def word_less_nat_alt)
+       apply (erule_tac x = i in allE)
+       apply (case_tac "i = unat idx"; clarsimp)
+      apply (clarsimp simp: word_less_nat_alt)
+      apply (rule conjI)
+       apply (drule distinct_indices)
+       apply (clarsimp simp: word_less_nat_alt)
+       apply (erule_tac x = i in allE)+
+       apply clarsimp
+       apply (erule_tac x = idx in allE)
+       apply clarsimp
       apply clarsimp
-     apply simp
-    apply (clarsimp simp: frame_def)
-    apply (rule conjI; clarsimp)
+      apply (erule_tac x = i in allE)
+      apply clarsimp
+      apply (case_tac "unat i = unat idx"; clarsimp)
+     apply (clarsimp simp: abs_upd_val'_def)
+     apply (erule_tac x = idx in allE)
+     apply clarsimp
+    apply simp
+   apply (clarsimp simp: frame_def)
+   apply (rule conjI; clarsimp)
     apply (rule conjI)
-      apply (clarsimp simp: abs_upd_val'_def abs_typing_u_def)
-     apply (rule conjI; clarsimp)
      apply (clarsimp simp: abs_upd_val'_def abs_typing_u_def)
     apply (rule conjI; clarsimp)
-   apply (clarsimp simp: abs_upd_val'_def)
-   apply (case_tac a; clarsimp simp: abs_typing_u_def)
-   apply (case_tac a'; clarsimp)
-   apply (rule_tac x = "VAbstract (VWA (x1[unat idx := VPrim (LU32 val)]))" in exI)
-   apply (clarsimp simp: \<xi>m_def val_wordarray_put2_0_def)
-  apply (clarsimp simp: \<xi>0_def upd_wordarray_length_0_def wordarray_length_0_type_def)
-  apply (erule u_v_p_absE'; clarsimp)
+    apply (clarsimp simp: abs_upd_val'_def abs_typing_u_def)
+   apply (rule conjI; clarsimp)
   apply (clarsimp simp: abs_upd_val'_def)
-  apply (case_tac a'a; clarsimp)
-  apply (rule conjI)
-   apply (clarsimp simp: \<xi>m_def val_wordarray_length_0_def)
-   apply (rule_tac x = "{}" in exI)+
-   apply (clarsimp simp: frame_def intro!: u_v_prim[where l = "(LU32 _)", simplified])
-  apply (clarsimp simp: abs_upd_val'_def)
-  apply (rule_tac x = "VPrim (LU32 len)" in exI)
-  apply (clarsimp simp: \<xi>m_def val_wordarray_length_0_def)
+  apply (case_tac a; clarsimp simp: abs_typing_u_def)
+  apply (case_tac a'; clarsimp)
+  apply (rule_tac x = "VAbstract (VWA (x1[unat idx := VPrim (LU32 val)]))" in exI)
+  apply (clarsimp simp: val_wa_put2_0_def)
   done
 
 lemma upd_proc_env_matches_ptrs_\<xi>0_\<Xi>:
@@ -367,8 +375,8 @@ lemma upd_proc_env_matches_ptrs_\<xi>0_\<Xi>:
   apply clarsimp
   apply (subst (asm) \<Xi>_def)
   apply (subst (asm) assoc_lookup.simps)+
-  apply (clarsimp split: if_split_asm simp: \<xi>0_def)
-    apply (clarsimp simp: wordarray_get_0_type_def abbreviatedType6_def upd_wordarray_get_0_def)
+  apply (clarsimp split: if_split_asm)
+    apply (clarsimp simp: wordarray_get_0_type_def abbreviatedType6_def upd_wa_get_0_def)
     apply (erule upd.u_t_recE; clarsimp)
     apply (erule upd.u_t_r_consE; clarsimp)
     apply (erule upd.u_t_p_absE; clarsimp)
@@ -379,45 +387,45 @@ lemma upd_proc_env_matches_ptrs_\<xi>0_\<Xi>:
     apply (clarsimp simp: frame_def abs_typing_u_def)
     apply (erule_tac x = idx in allE)
     apply (case_tac "idx < len"; clarsimp intro!: upd.u_t_prim[where l = "(LU32 _)", simplified])
-   apply (clarsimp simp: wordarray_put2_0_type_def abbreviatedType5_def upd_wordarray_put2_0_def)
-   apply (erule upd.u_t_recE; clarsimp)
-   apply (erule upd.u_t_r_consE; clarsimp)
+   apply (clarsimp simp: wordarray_length_0_type_def upd_wa_length_0_def)
    apply (erule upd.u_t_p_absE; clarsimp)
-   apply (erule upd.u_t_r_consE; simp)
-   apply (erule conjE)+
-   apply (subst (asm) type_repr.simps[symmetric])+
-   apply clarsimp
-   apply (erule upd.u_t_r_consE; simp)
-   apply (erule conjE)+
-   apply (subst (asm) type_repr.simps[symmetric])+
-   apply clarsimp
-   apply (erule upd.u_t_r_emptyE)
-   apply (erule upd.u_t_primE)+
-   apply (subst (asm) lit_type.simps)+
-   apply clarsimp
-   apply (case_tac a; clarsimp)
-    apply (rule_tac x = ra in exI)
-    apply (rule_tac x = "insert p w" in exI)
-    apply (rule conjI)
-     apply (rename_tac len arr)
-     apply (rule_tac ptrl = undefined and a = "WAU32 len arr" in upd.u_t_p_abs_w[where ts = "[TPrim (Num U32)]", simplified])
-        apply simp
-       apply (clarsimp simp: abs_typing_u_def)
-      apply (clarsimp simp: abs_typing_u_def)
-     apply clarsimp
-    apply (clarsimp simp: frame_def abs_typing_u_def)
-    apply (rule conjI; clarsimp)
-     apply (rule conjI)
-      apply (rule disjI2)
-      apply (rule disjI2)
-      apply (rule_tac x = idx in exI; simp)
-     apply (rule conjI; clarsimp)
-    apply (rule conjI; clarsimp)
-   apply (clarsimp simp: abs_typing_u_def)
-  apply (clarsimp simp: wordarray_length_0_type_def upd_wordarray_length_0_def)
+   apply (rule_tac x = "{}" in exI)+
+   apply (clarsimp simp: frame_def intro!: upd.u_t_prim[where l = "(LU32 _)", simplified])
+  apply (clarsimp simp: wordarray_put2_0_type_def abbreviatedType5_def upd_wa_put2_0_def)
+  apply (erule upd.u_t_recE; clarsimp)
+  apply (erule upd.u_t_r_consE; clarsimp)
   apply (erule upd.u_t_p_absE; clarsimp)
-  apply (rule_tac x = "{}" in exI)+
-  apply (clarsimp simp: frame_def intro!: upd.u_t_prim[where l = "(LU32 _)", simplified])
+  apply (erule upd.u_t_r_consE; simp)
+  apply (erule conjE)+
+  apply (subst (asm) type_repr.simps[symmetric])+
+  apply clarsimp
+  apply (erule upd.u_t_r_consE; simp)
+  apply (erule conjE)+
+  apply (subst (asm) type_repr.simps[symmetric])+
+  apply clarsimp
+  apply (erule upd.u_t_r_emptyE)
+  apply (erule upd.u_t_primE)+
+  apply (subst (asm) lit_type.simps)+
+  apply clarsimp
+  apply (case_tac a; clarsimp)
+   apply (rule_tac x = ra in exI)
+   apply (rule_tac x = "insert p w" in exI)
+   apply (rule conjI)
+    apply (rename_tac len arr)
+    apply (rule_tac ptrl = undefined and a = "WAU32 len arr" in upd.u_t_p_abs_w[where ts = "[TPrim (Num U32)]", simplified])
+       apply simp
+      apply (clarsimp simp: abs_typing_u_def)
+     apply (clarsimp simp: abs_typing_u_def)
+    apply clarsimp
+   apply (clarsimp simp: frame_def abs_typing_u_def)
+   apply (rule conjI; clarsimp)
+    apply (rule conjI)
+     apply (rule disjI2)
+     apply (rule disjI2)
+     apply (rule_tac x = idx in exI; simp)
+    apply (rule conjI; clarsimp)
+   apply (rule conjI; clarsimp)
+  apply (clarsimp simp: abs_typing_u_def)
   done
 
 lemma proc_ctx_wellformed_\<Xi>:
@@ -503,7 +511,7 @@ theorem shallow_C_wordarray_put2_corres:
    apply (rule v_sem_abs_app)
      apply (rule v_sem_afun)
     apply (rule v_sem_var)
-   apply (clarsimp simp: \<xi>m_def val_wordarray_put2_0_def)
+   apply (clarsimp simp: val_wa_put2_0_def)
   apply (clarsimp simp: Generated_Shallow_Desugar.wordarray_put2_u32_def wordarray_put2')
   apply (subst val_rel_shallow_C_def)
   apply (clarsimp simp: valRel_WordArrayPutP valRel_WordArrayU32)
@@ -530,7 +538,7 @@ theorem shallow_C_wordarray_put2_corres:
   apply (rule_tac x = "TCon ''WordArray'' [TPrim (Num U32)] (Boxed Writable undefined)" in exI)
   apply (rule_tac x = ra in exI)
   apply (rule_tac x = "insert (ptr_val (t2_C.arr_C uv\<^sub>C)) wa" in exI)
-  apply (clarsimp simp: \<xi>0_def upd_wordarray_put2_0_def)
+  apply (clarsimp simp: upd_wa_put2_0_def)
   apply (rule_tac ptrl = undefined and a = a in u_v_p_abs_w[where ts = "[TPrim (Num U32)]", simplified])
      apply simp
     apply (clarsimp simp: abs_upd_val'_def)
@@ -634,7 +642,7 @@ theorem shallow_C_wordarray_length_corres:
    apply (rule v_sem_abs_app)
      apply (rule v_sem_afun)
     apply (rule v_sem_var)
-   apply (clarsimp simp: \<xi>m_def val_wordarray_length_0_def)
+   apply (clarsimp simp: val_wa_length_0_def)
   apply (subst val_rel_shallow_C_def)
   apply (rule_tac x = "TPrim (Num U32)" in exI)
   apply (rule_tac x = "{}" in exI)+
@@ -715,7 +723,7 @@ theorem shallow_C_wordarray_get_corres:
   apply (subst (asm) lit_type.simps; simp)
   apply (erule u_v_p_absE; clarsimp)
   apply (erule u_sem_appE; erule u_sem_afunE; clarsimp)
-  apply (erule u_sem_varE; clarsimp simp: \<xi>0_def upd_wordarray_get_0_def)
+  apply (erule u_sem_varE; clarsimp simp: upd_wa_get_0_def)
   apply (simp add: word_less_nat_alt)
   apply (rule conjI)
    apply (rule v_sem_let)
@@ -723,7 +731,7 @@ theorem shallow_C_wordarray_get_corres:
    apply (rule v_sem_abs_app)
      apply (rule v_sem_afun)
     apply (rule v_sem_var)
-   apply (clarsimp simp: \<xi>m_def val_wordarray_get_0_def abs_upd_val'_def)
+   apply (clarsimp simp: val_wa_get_0_def abs_upd_val'_def)
   apply (erule_tac x = "t1_C.p2_C uv\<^sub>C" in allE; clarsimp simp: word_less_nat_alt)
   apply (subst val_rel_shallow_C_def)
   apply (rule_tac x = "TPrim (Num U32)" in exI)
@@ -772,7 +780,7 @@ lemma upd_C_wordarray_put2_corres:
                             else \<sigma> l)" in exI)
   apply (rule_tac x = "UPtr (ptr_val y') (RCon ''WordArray'' [RPrim (Num U32)])" in exI)
   apply (rule conjI)
-   apply (monad_eq simp: wordarray_put2_0'_def \<xi>0_def upd_wordarray_put2_0_def)
+   apply (monad_eq simp: wordarray_put2_0'_def upd_wa_put2_0_def)
   apply (rule conjI)
    apply (rule_tac x = "RCon ''WordArray'' [RPrim (Num U32)]" in exI, simp)
   apply (clarsimp simp: state_rel_def heap_rel_def heap_rel_ptr_meta heap_rel_ptr_w32_meta)
@@ -822,7 +830,7 @@ lemma upd_C_wordarray_length_corres:
   apply clarsimp
   apply (rule_tac x = \<sigma> in exI)
   apply (rule conjI)
-   apply (clarsimp simp: \<xi>0_def upd_wordarray_length_0_def)
+   apply (clarsimp simp: upd_wa_length_0_def)
    apply (monad_eq simp: wordarray_length_0'_def)
    apply (clarsimp simp: state_rel_def heap_rel_def)
    apply (erule_tac x = x' in allE)
@@ -863,7 +871,7 @@ lemma upd_C_wordarray_get_corres:
   apply clarsimp
   apply (rule_tac x = \<sigma> in exI)
   apply (rule conjI)
-   apply (clarsimp simp: \<xi>0_def upd_wordarray_get_0_def)
+   apply (clarsimp simp: upd_wa_get_0_def)
    apply (erule_tac x = "t1_C.p2_C x'" in allE)
    apply (monad_eq simp: wordarray_get_0'_def word_less_nat_alt word_le_nat_alt)
    apply (clarsimp simp: state_rel_def heap_rel_def heap_rel_ptr_meta heap_rel_ptr_w32_meta)
@@ -1073,20 +1081,21 @@ gets (\<lambda>s. x)
 
 lemma
 " \<And>v' i \<gamma> \<Gamma>' \<sigma> s.
-    \<lbrakk>t5_C.f_C v' = FUN_ENUM_sum; i < length \<gamma>; val_rel (\<gamma> ! i) v';
+    \<lbrakk>i < length \<gamma>; val_rel (\<gamma> ! i) v';
      \<Gamma>' ! i = option.Some (prod.fst (prod.snd (\<Xi> ''wordarray_fold_no_break_0'')))\<rbrakk>
     \<Longrightarrow> update_sem_init.corres abs_typing_u abs_repr_u (Generated.state_rel abs_repr_u)
          (App (AFun ''wordarray_fold_no_break_0'' []) (Var i)) (do x <- main_pp_inferred.wordarray_fold_no_break_0' v';
 gets (\<lambda>s. x)
                                                                 od)
          \<xi>0 \<gamma> \<Xi>  \<Gamma>' \<sigma> s"
-
-  apply (clarsimp simp: corres_def')
-  apply (frule_tac i = i and 
-                   \<tau> = "prod.fst (prod.snd (\<Xi> ''wordarray_fold_no_break_0''))" in upd.matches_ptrs_proj_single')
-    apply (frule upd.matches_ptrs_length, simp)
-   apply simp
+  apply (rule afun_corres; simp)
+  apply (clarsimp simp: abs_rel_def') find_theorems "whileLoop" name:"inv" 
+  apply (thin_tac "i < length \<gamma>")
+  apply (thin_tac "val_rel (\<gamma> ! i) v'")
+  apply (thin_tac "\<Gamma>' ! i = option.Some (prod.fst (prod.snd (\<Xi> ''wordarray_fold_no_break_0'')))")
+  apply clarsimp
   apply (clarsimp simp: val_rel_simp)
+(*
   apply (clarsimp simp: cogent_function_val_rel
                         FUN_ENUM_sum_def
                         FUN_ENUM_dec_def
@@ -1104,7 +1113,7 @@ gets (\<lambda>s. x)
                         FUN_ENUM_wordarray_get_u32_def
                         FUN_ENUM_wordarray_length_u32_def
                         FUN_ENUM_wordarray_put2_u32_def)
-(*
+*)
   apply (erule upd.u_t_recE)
   apply (clarsimp simp: \<Xi>_def wordarray_fold_no_break_0_type_def abbreviatedType1_def)
   apply (erule upd.u_t_r_consE; clarsimp)
@@ -1115,79 +1124,120 @@ gets (\<lambda>s. x)
   apply (erule upd.u_t_r_consE; clarsimp)
   apply (erule upd.u_t_primE; subst (asm) lit_type.simps; clarsimp)
   apply (erule upd.u_t_r_consE; clarsimp)
-  apply (erule upd.u_t_functionE; clarsimp)
   apply (erule upd.u_t_r_consE; clarsimp)
   apply (erule upd.u_t_primE; subst (asm) lit_type.simps; clarsimp)
   apply (erule upd.u_t_r_consE; clarsimp)
   apply (erule upd.u_t_r_emptyE)
-  apply (erule upd.u_t_unitE)
-*)
-  apply (clarsimp simp: wordarray_fold_no_break_0'_def)
-  apply wp
-(*
-  apply (rule conjI; clarsimp)
-   apply (monad_eq simp: wordarray_fold_no_break_0'_def)
+  apply (erule upd.u_t_unitE)thm cogent_function_val_rel
+  apply (case_tac "sint (t5_C.f_C x') \<noteq> sint FUN_ENUM_mul")
+   apply (case_tac "sint (t5_C.f_C x') \<noteq> sint FUN_ENUM_sum")
+    apply (clarsimp simp: cogent_function_val_rel
+                          FUN_ENUM_sum_def
+                          FUN_ENUM_dec_def
+                          FUN_ENUM_inc_def
+                          FUN_ENUM_mul_def
+                          FUN_ENUM_dec_arr_def
+                          FUN_ENUM_inc_arr_def
+                          FUN_ENUM_mul_arr_def
+                          FUN_ENUM_sum_arr_def
+                          FUN_ENUM_wordarray_get_0_def
+                          FUN_ENUM_wordarray_length_0_def
+                          FUN_ENUM_wordarray_put2_0_def
+                          FUN_ENUM_wordarray_fold_no_break_0_def
+                          FUN_ENUM_wordarray_map_no_break_0_def
+                          FUN_ENUM_wordarray_get_u32_def
+                          FUN_ENUM_wordarray_length_u32_def
+                          FUN_ENUM_wordarray_put2_u32_def)
 
-
-  find_theorems "whileLoop"
-  find_theorems "whileLoopME"
-   prefer 2
-   apply (rule_tac x = \<sigma> in exI)
-   apply (rule conjI)
-    apply (rule u_sem_abs_app)
-      apply (rule u_sem_afun)
-     apply (rule u_sem_var)
-    apply clarsimp
-
-*)
-
-(*
-  apply (rule afun_corres; simp)
-  apply (clarsimp simp: abs_rel_def; rename_tac r w)
-  apply (thin_tac "i < length \<gamma>")
-  apply (thin_tac "val_rel (\<gamma> ! i) v'")
-  apply (thin_tac "\<Gamma>' ! i = option.Some (prod.fst (prod.snd (\<Xi> ''wordarray_fold_no_break_0'')))")
-  apply (clarsimp simp: val_rel_simp \<Xi>_def wordarray_fold_no_break_0_type_def abbreviatedType1_def)
-  apply (erule upd.u_t_recE)
-  apply clarsimp
-  apply (erule upd.u_t_r_consE; clarsimp)+
-  apply (erule upd.u_t_r_emptyE)
-  apply (erule upd.u_t_primE; subst (asm) lit_type.simps; clarsimp)+
-  apply (erule upd.u_t_unitE)
-  apply (erule upd.u_t_p_absE; clarsimp simp: abs_typing_u_def)
-  apply (case_tac a; clarsimp)
-  thm cogent_function_val_rel
-  apply (clarsimp simp: cogent_function_val_rel)
-  apply (erule disjE)+
-   apply clarsimp
-   apply (erule upd.u_t_functionE)
-   apply (clarsimp simp: Generated_TypeProof.dec_def)
-   apply (erule typing_takeE)+
-   apply clarsimp
-   apply (erule typing_varE)+
-   apply (erule typing_letE)+
-   apply clarsimp
-   apply (erule typing_litE)+
-   apply (erule typing_primE)+
-   apply clarsimp
-   apply (erule typing_all_consE)+
-   apply (erule typing_all_emptyE)
-   apply clarsimp
-   apply (erule typing_varE)+
-   apply clarsimp
-   apply (erule typing_structE)
-   apply (erule typing_all_consE)+
-   apply (erule typing_all_emptyE)
-   apply (erule typing_varE)+
-   apply clarsimp
-   apply (subst (asm)  subtyping_simps)+
-  apply clarsimp
+    apply (rule FalseE)
+    apply (erule disjE)
+     apply (clarsimp simp: dec_def)
+     apply (erule upd.u_t_functionE)
+     apply (erule typing_takeE)+
+     apply (erule typing_letE)+
+     apply (erule typing_structE)
+     apply (erule typing_all_consE)+
+     apply (erule typing_varE)+
+     apply (clarsimp simp: subtyping_simps(4) subtyping.simps[of _ _ "TPrim (Num U32)", simplified])
+    apply (erule disjE)
+     apply (clarsimp simp: inc_def)
+     apply (erule upd.u_t_functionE)
+     apply (erule typing_takeE)+
+     apply (erule typing_letE)+
+     apply (erule typing_structE)
+     apply (erule typing_all_consE)+
+     apply (erule typing_varE)+
+     apply (clarsimp simp: subtyping_simps(4) subtyping.simps[of _ _ "TPrim (Num U32)", simplified])
+    apply (erule disjE)
+     apply (clarsimp simp: dec_arr_def)
+     apply (erule upd.u_t_functionE; clarsimp)
+     apply (erule typing_letE)
+     apply (erule typing_letbE)
+     apply (erule typing_letE)+
+     apply (erule typing_appE)+
+     apply (erule typing_afunE)+
+     apply (clarsimp simp: wordarray_map_no_break_0_type_def abbreviatedType2_def)
+     apply (clarsimp simp: subtyping_simps(4) subtyping.simps[of _ _ "TPrim (Num U32)", simplified])
+    apply (erule disjE)
+     apply (clarsimp simp: inc_arr_def)
+     apply (erule upd.u_t_functionE; clarsimp)
+     apply (erule typing_letE)
+     apply (erule typing_letbE)
+     apply (erule typing_letE)+
+     apply (erule typing_appE)+
+     apply (erule typing_afunE)+
+     apply (clarsimp simp: wordarray_map_no_break_0_type_def abbreviatedType2_def)
+     apply (clarsimp simp: subtyping_simps(4) subtyping.simps[of _ _ "TPrim (Num U32)", simplified])
+    apply (erule disjE)
+     apply (clarsimp simp: mul_arr_def)
+     apply (erule upd.u_t_functionE; clarsimp)
   
-  *)
   oops
-  thm whileLoop_to_fold
-  find_theorems "fold"
+(*
+fun upd_wa_foldnb_0'  :: "(char list, atyp, 32 word) ufundef" 
+  where
+"upd_wa_foldnb_0' (b1, b2) c = (\<exists>p frm to f ts acc len arr. 
+    b2 = URecord [(UPtr p (RCon ''WordArray'' [RPrim (Num U32)]), RPtr (RCon ''WordArray'' [RPrim (Num U32)])),
+      (UPrim (LU32 frm), RPrim (Num U32)), (UPrim (LU32 to), RPrim (Num U32)),
+      (UFunction f ts, RFun), (UPrim (LU32 acc), RPrim (Num U32)), (UUnit, RUnit)] \<and> 
+    b1 p = option.Some (UAbstract (WAU32 len arr)) \<and>
+    (if frm < min to frm 
+      then (\<exists>v b1' acc' \<xi>. (b1 (arr + 4 * frm) = option.Some (UPrim (LU32 v))) \<and> 
+        (\<xi>, [(URecord [(UPrim (LU32 v), RPrim (Num U32)), (UPrim (LU32 acc), RPrim (Num U32)), 
+          (UUnit, RUnit)])] \<turnstile> (b1, App (Fun f ts) (Var 0)) \<Down>! (b1', UPrim (LU32 acc'))) \<and>
+        upd_wa_foldnb_0' (b1', URecord [(UPtr p (RCon ''WordArray'' [RPrim (Num U32)]), RPtr (RCon ''WordArray'' [RPrim (Num U32)])),
+          (UPrim (LU32 (frm + 1)), RPrim (Num U32)), (UPrim (LU32 to), RPrim (Num U32)),
+          (UFunction f ts, RFun), (UPrim (LU32 acc'), RPrim (Num U32)), (UUnit, RUnit)]) c)
+    else (b1, b2) = c))"
+(*
+fun upd_wa_foldnb_body
+*)
+definition upd_wa_fold_nb_0 :: "(char list, atyp, 32 word) ufundef" 
+  where
+"upd_wa_fold_nb_0 x y =
+     (let (x1, x2) = x;
+          (y1, y2) = y
+      in x1 = y1 \<and> (\<exists>p frm to f ts acc len arr. x2 = URecord [
+          (UPtr p (RCon ''WordArray'' [RPrim (Num U32)]), RPtr (RCon ''WordArray'' [RPrim (Num U32)])),
+          (UPrim (LU32 frm), RPrim (Num U32)), (UPrim (LU32 to), RPrim (Num U32)),
+          (UFunction f ts, RFun), (UPrim (LU32 acc), RPrim (Num U32)), (UUnit, RUnit)] \<and> 
+          x1 p = option.Some (UAbstract (WAU32 len arr))))"
 
 
+value "[7 ..(min 3 5)]"
+term "SOME (x:: nat). x = 0"
+term "THE x. x"
+term fold
+(*
+  bad_\<sigma> ptr = None
+  \<sigma> p = option.Some (UAbstract (WAU32 len arr))
+  xs = [frm .. (min to len)]
+  acc_f = (\<sigma>, acc)
+  f = (\<lambda>i (\<sigma>, acc).
+        (case \<sigma> (arr + i) of
+            option.Some (UPrim (LU32 v)) \<Rightarrow>
+            | _ \<Rightarrow> (bad_\<sigma>, UUnit)))
+*)
+*)
 end (* of context *)
 end
